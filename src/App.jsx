@@ -82,6 +82,7 @@ export default function App() {
     setLanguage(lang);
     setFormData(prev => ({ ...prev, language: lang }));
     localStorage.setItem('astro_user_lang', lang);
+    setIsLanguageModalOpen(false);
   };
 
   const handleConfirmLanguage = () => {
