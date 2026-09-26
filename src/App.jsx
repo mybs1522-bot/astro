@@ -15,16 +15,47 @@ import { REPORTS_DATA } from './data/reports';
 import { SLUG_TO_REPORT_ID, REPORT_ID_TO_SLUG } from './data/landingPagesData';
 import { ShieldCheck, Sparkles, Lock } from 'lucide-react';
 
+function getInitialRoute() {
+  if (typeof window === 'undefined') {
+    return { view: 'catalog', reportId: 'career-growth-remedy' };
+  }
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+  const hash = window.location.hash.toLowerCase().replace(/\/$/, '');
+
+  // Check admin dashboard route (/admin, /admin/, #/admin, #admin)
+  if (path === '/admin' || path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') {
+    return { view: 'admin', reportId: 'career-growth-remedy' };
+  }
+
+  let targetSlug = null;
+  if (window.location.pathname.includes('/landing/')) {
+    const parts = window.location.pathname.split('/landing/');
+    targetSlug = parts[1]?.split('/')[0]?.split('?')[0];
+  } else if (window.location.hash.includes('/landing/')) {
+    const parts = window.location.hash.split('/landing/');
+    targetSlug = parts[1]?.split('/')[0]?.split('?')[0];
+  }
+
+  if (targetSlug && SLUG_TO_REPORT_ID[targetSlug]) {
+    return { view: 'landing', reportId: SLUG_TO_REPORT_ID[targetSlug] };
+  }
+
+  return { view: 'catalog', reportId: 'career-growth-remedy' };
+}
+
 export default function App() {
+  const initialRoute = getInitialRoute();
+
   const [language, setLanguage] = useState(() => {
     return localStorage.getItem('astro_user_lang') || 'hi';
   });
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(() => {
-    // Only open if the user hasn't selected language yet on this system
+    // Only open if the user hasn't selected language yet and not on admin
+    if (initialRoute.view === 'admin') return false;
     return !localStorage.getItem('astro_user_lang');
   });
-  const [currentView, setCurrentView] = useState('catalog'); // 'catalog' | 'landing' | 'report'
-  const [selectedReportId, setSelectedReportId] = useState('career-growth-remedy');
+  const [currentView, setCurrentView] = useState(initialRoute.view);
+  const [selectedReportId, setSelectedReportId] = useState(initialRoute.reportId);
   const [withAddon, setWithAddon] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -61,12 +92,13 @@ export default function App() {
   // URL hash and pathname listener for direct URLs like /landing/CareerGrowth and /admin
   useEffect(() => {
     const handleUrlRoute = () => {
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
+      const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+      const hash = window.location.hash.toLowerCase().replace(/\/$/, '');
 
       // Check admin dashboard route
       if (path === '/admin' || path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') {
         setCurrentView('admin');
+        setIsLanguageModalOpen(false);
         return;
       }
 
@@ -259,6 +291,13 @@ export default function App() {
   };
 
   const handleGoHome = () => {
+    if (window.location.pathname.toLowerCase().startsWith('/admin')) {
+      try {
+        window.history.pushState(null, '', '/');
+      } catch {
+        // ignore
+      }
+    }
     window.location.hash = '';
     setCurrentView('catalog');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -266,8 +305,16 @@ export default function App() {
 
   const handleGoAdmin = (e) => {
     if (e) e.preventDefault();
-    window.location.hash = '/admin';
+    if (!window.location.pathname.toLowerCase().startsWith('/admin')) {
+      try {
+        window.history.pushState(null, '', '/admin');
+      } catch {
+        // ignore
+      }
+    }
+    window.location.hash = '';
     setCurrentView('admin');
+    setIsLanguageModalOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
