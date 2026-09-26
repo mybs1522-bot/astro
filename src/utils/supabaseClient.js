@@ -235,22 +235,60 @@ export async function fetchReportOrders() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error || !data) {
+    if (error) {
+      console.warn('Supabase fetch error (using local cache):', error.message);
       return localOrders;
     }
 
-    // Merge remote and local without duplicates (remote wins for same id)
-    const idMap = new Map();
-    data.forEach(item => idMap.set(item.id, item));
-    localOrders.forEach(item => {
-      if (!idMap.has(item.id)) idMap.set(item.id, item);
-    });
+    const remoteData = data || [];
+    const remoteIdSet = new Set(remoteData.map(item => item.id));
 
-    return Array.from(idMap.values()).sort(
-      (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-    );
+    // 1. Identify local orders that are missing in Supabase (e.g., generated on this device offline)
+    const missingInRemote = localOrders.filter(local => !remoteIdSet.has(local.id));
+
+    // 2. Two-way sync: Push missing local orders to Supabase cloud
+    if (missingInRemote.length > 0) {
+      console.log(`Syncing ${missingInRemote.length} local orders to Supabase cloud...`);
+      const { error: syncError } = await supabase
+        .from('reports')
+        .upsert(missingInRemote, { onConflict: 'id' });
+
+      if (!syncError) {
+        // Re-fetch from cloud to ensure we have the exact authoritative server state
+        const { data: updatedData, error: updatedError } = await supabase
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (!updatedError && updatedData) {
+          // Cloud is the absolute source of truth. Mirror it locally.
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedData));
+          return updatedData;
+        }
+      }
+    }
+
+    // 3. Mirror the cloud data perfectly into local storage for offline resilience
+    if (remoteData.length > 0 || localOrders.length > 0) {
+      // We also want to merge any remote updates to local, but missingInRemote handles local->remote
+      // So remoteData has everything except the ones that just failed to sync. 
+      // Just to be safe, if we didn't re-fetch, we combine them:
+      const mergedIdMap = new Map();
+      remoteData.forEach(item => mergedIdMap.set(item.id, item));
+      localOrders.forEach(item => {
+        if (!mergedIdMap.has(item.id)) mergedIdMap.set(item.id, item);
+      });
+      
+      const finalList = Array.from(mergedIdMap.values()).sort(
+        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      );
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalList));
+      return finalList;
+    }
+
+    return remoteData;
   } catch (err) {
-    console.warn('Supabase fetch error, returning local cache:', err);
+    console.warn('Supabase network error, returning local cache:', err);
     return localOrders;
   }
 }
