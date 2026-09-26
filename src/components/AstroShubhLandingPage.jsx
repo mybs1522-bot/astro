@@ -24,6 +24,7 @@ import CityAutocomplete from './CityAutocomplete';
 import { REPORTS_DATA } from '../data/reports';
 import { LANDING_PAGES_DATA } from '../data/landingPagesData';
 import VedicBookCover from './VedicBookCover';
+import { trackMetaViewContent } from '../utils/metaPixel';
 
 // Helper to translate labels to simple Hindi/Hinglish
 const getLocalizedLabel = (label, isHindi) => {
@@ -136,6 +137,17 @@ export default function AstroShubhLandingPage({
   const [recentOrderToast, setRecentOrderToast] = useState(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [reviewFilter, setReviewFilter] = useState('all');
+
+  // Meta Pixel & Conversions API (CAPI) - Track ViewContent
+  useEffect(() => {
+    if (reportConfig) {
+      trackMetaViewContent({
+        reportId: reportConfig.id,
+        title: isHindi ? (reportConfig.titleHi || reportConfig.title) : reportConfig.title,
+        amount: 299
+      });
+    }
+  }, [reportId]);
 
   // Evergreen countdown timer (2h 23m 26s = 8606s) for urgency
   const INITIAL_TIMER_SECONDS = 2 * 3600 + 23 * 60 + 26; // 8606s

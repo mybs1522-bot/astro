@@ -14,6 +14,13 @@ import confetti from 'canvas-confetti';
 import { REPORTS_DATA } from './data/reports';
 import { SLUG_TO_REPORT_ID, REPORT_ID_TO_SLUG } from './data/landingPagesData';
 import { ShieldCheck, Sparkles, Lock } from 'lucide-react';
+import { 
+  trackMetaPageView, 
+  trackMetaLead, 
+  trackMetaInitiateCheckout, 
+  trackMetaPurchase,
+  generateEventId 
+} from './utils/metaPixel';
 
 function getInitialRoute() {
   if (typeof window === 'undefined') {
@@ -130,6 +137,11 @@ export default function App() {
     };
   }, []);
 
+  // Track Meta PageView on route / view changes
+  useEffect(() => {
+    trackMetaPageView();
+  }, [currentView, selectedReportId]);
+
   const handleSelectReport = (reportId) => {
     setSelectedReportId(reportId);
     const slug = REPORT_ID_TO_SLUG[reportId] || 'CareerGrowth';
@@ -164,6 +176,33 @@ export default function App() {
       amount: amount
     });
     setCurrentLeadId(leadId);
+
+    // Meta Pixel & Conversions API: Fire Lead and InitiateCheckout with deduplication
+    try {
+      const leadEventId = generateEventId('lead');
+      trackMetaLead({
+        reportId: selectedReportId,
+        title: reportTitle,
+        amount: amount,
+        name: formData.fullName,
+        phone: formData.whatsappNumber,
+        email: 'client@astrojeevan.com',
+        eventId: leadEventId
+      });
+
+      const checkoutEventId = generateEventId('initiate_checkout');
+      trackMetaInitiateCheckout({
+        reportId: selectedReportId,
+        title: reportTitle,
+        amount: amount,
+        name: formData.fullName,
+        phone: formData.whatsappNumber,
+        email: 'client@astrojeevan.com',
+        eventId: checkoutEventId
+      });
+    } catch (metaErr) {
+      console.warn('[Meta Tracking Error on Submit]:', metaErr);
+    }
 
     // ── STAGE 2: Open Razorpay and update status on every callback ──
     const opened = await openRazorpayCheckout({
@@ -255,6 +294,24 @@ export default function App() {
       amount: withAddon ? 398 : 299
     });
     setIsGurujiSuccessModalOpen(true);
+
+    // Meta Pixel & Conversions API (CAPI): Fire Purchase with deduplication
+    try {
+      const purchaseEventId = generateEventId('purchase');
+      trackMetaPurchase({
+        orderId: orderId,
+        reportId: selectedReportId,
+        title: initialReport?.title || 'Astrology Report',
+        amount: withAddon ? 398 : 299,
+        paymentId: payId,
+        name: formData.fullName,
+        phone: formData.whatsappNumber,
+        email: 'client@astrojeevan.com',
+        eventId: purchaseEventId
+      });
+    } catch (metaErr) {
+      console.warn('[Meta Tracking Purchase Error]:', metaErr);
+    }
 
     // 2. Persist full order record (upserts the existing lead with report data)
     const orderRecord = {
