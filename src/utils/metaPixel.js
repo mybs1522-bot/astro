@@ -1,14 +1,14 @@
 // Meta Pixel & Conversions API (CAPI) Tracking Utility
-// Pixel ID: 4679956578947738
+// Pixel ID: 1817128485872560
 // Configured with dual Browser (fbq) + Server (CAPI) tracking with deduplication (event_id)
 
 export const META_PIXEL_ID = 
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_META_PIXEL_ID) || 
-  '4679956578947738';
+  '1817128485872560';
 
 export const META_CAPI_TOKEN = 
   (typeof import.meta !== 'undefined' && import.meta.env?.META_CAPI_TOKEN) || 
-  'EAADE6Lnxf9MBSl1PEnbVjzfZATkGgCcZAzkfDaTeSrTYVEpvESH6mCY9I4kbB9vLWHZCZCWAC7FzojK1avmwZBg2mlwX0fePZASVD4qGVGPgk5QPUQWWkdjDf8C5dMLDvD9ZCNt8u0hdUhX6Q1n7SHBUEz5ojIsPd8RnZAc4p6XO2CZCS1ZAer3SuobHcIhevvPycZBPwZDZD';
+  'EAALS3jbvlwkBSpjkl0RfBSMJ8iu5NMQKZC6OXuTDPy7JFjdrWnfoZBZBwDYhzoJOmcPsbDV4ZA8AlonJSxHwnfSvGVQNZChqsqdrioyEIw9FQAmJ7dSlOD5cxXV1R9wZBNsReTMbdDlRKwYcJDGloKzwQNFipU9nmSog2qSNXZCZCamyiDYJEPYUZB42S2glgiwZDZD';
 
 // Helper to get cookies (_fbp, _fbc)
 export function getCookie(name) {
