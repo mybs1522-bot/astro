@@ -1,58 +1,86 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase with the Service Role Key
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Initialize Supabase safely
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+  // 1. Only allow POST requests
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  // 2. Early return to prevent crashing if DB isn't connected
+  if (!supabase) {
+    console.error('CRITICAL: Supabase credentials missing.');
+    return res.status(500).json({ error: 'Database not configured' });
   }
 
   try {
     const order = req.body;
 
-    // Check if the order contains the Karz Mukti product
-    const hasKarzMukti = order.line_items?.some(item => 
-      item.title.includes('Personalized Karz Mukti Report')
+    // 3. Safety Check: Ensure this is a valid Shopify payload
+    if (!order || !order.id || !order.line_items) {
+      return res.status(400).json({ error: 'Invalid payload' });
+    }
+
+    // 4. Robust Filtering: Case-insensitive match for the product
+    const karzMuktiItem = order.line_items.find(item => 
+      item.title && item.title.toLowerCase().includes('karz mukti')
     );
 
-    if (!hasKarzMukti) {
+    if (!karzMuktiItem) {
+      // Return 200 so Shopify doesn't keep retrying ignored orders
       return res.status(200).json({ message: 'Ignored, wrong product.' });
     }
 
-    // Extract Customer Data
-    const customerName = order.customer?.first_name || order.shipping_address?.first_name || 'Client';
-    const phone = order.customer?.phone || order.phone || 'Not Provided';
+    // 5. Bulletproof Data Extraction (Never crash on null values)
+    const customer = order.customer || {};
+    const shipping = order.shipping_address || {};
     
-    // Shopify stores custom cart details in note_attributes
-    const noteAttrs = order.note_attributes || [];
-    const getNote = (key) => noteAttrs.find(n => n.name === key)?.value;
+    const customerName = customer.first_name || shipping.first_name || 'Client';
+    const phone = customer.phone || order.phone || shipping.phone || 'Not Provided';
+    
+    const noteAttrs = Array.isArray(order.note_attributes) ? order.note_attributes : [];
+    const getNote = (key) => {
+      const match = noteAttrs.find(n => n.name?.toLowerCase() === key.toLowerCase());
+      return match ? match.value : 'Not Provided';
+    };
 
-    // Save the order to Supabase as a "Completed Lead" for your report generator
+    // 6. Construct exact record format
     const record = {
       id: `shopify_${order.id}`,
       client_name: customerName,
-      dob: getNote('DOB') || 'Not Provided',
-      tob: getNote('TOB') || 'Not Provided',
-      pob: getNote('POB') || 'Not Provided',
+      gender: getNote('Gender'),
+      dob: getNote('DOB'),
+      tob: getNote('TOB'),
+      pob: getNote('POB'),
       whatsapp: phone,
       report_id: 'karz-mukti-remedy',
       report_title: 'Personalized Karz Mukti Report & Remedy',
-      amount: parseFloat(order.total_price),
+      amount: parseFloat(order.total_price) || 0,
       payment_status: 'Completed',
-      payment_method: 'Shopify Webhook',
+      payment_method: order.gateway || 'Shopify Checkout',
+      payment_id: order.checkout_id || `shopify_${order.id}`,
       lead_stage: 'completed',
-      created_at: new Date().toISOString()
+      error_details: '',
+      report_data: null,
+      created_at: order.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
-    await supabase.from('reports').upsert([record], { onConflict: 'id' });
+    // 7. Upsert to Supabase
+    const { error } = await supabase.from('reports').upsert([record], { onConflict: 'id' });
+
+    if (error) {
+      console.error(`Supabase Sync Error for order ${order.id}:`, error.message);
+      // Return 500! This tells Shopify it failed, so Shopify will automatically RETRY sending it later.
+      return res.status(500).json({ error: 'Failed to save to database' });
+    }
     
-    return res.status(200).json({ message: 'Successfully captured Shopify order into Supabase!' });
+    return res.status(200).json({ message: 'Success' });
 
   } catch (err) {
-    console.error('Webhook Error:', err);
+    console.error('Webhook Fatal Error:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
