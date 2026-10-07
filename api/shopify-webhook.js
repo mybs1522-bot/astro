@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://aynzwvsnjqhcywfandbd.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   if (!supabase) {
-    console.error('CRITICAL: Supabase credentials missing.');
+    console.error('CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing.');
     return res.status(500).json({ error: 'Database not configured' });
   }
 
@@ -18,9 +18,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid payload' });
     }
 
-    const karzMuktiItem = order.line_items.find(item =>
-      item.title && item.title.toLowerCase().includes('karz mukti')
-    );
+    const karzMuktiItem = order.line_items.find(function(item) {
+      return item.title && item.title.toLowerCase().includes('karz mukti');
+    });
 
     if (!karzMuktiItem) {
       return res.status(200).json({ message: 'Ignored, wrong product.' });
@@ -28,13 +28,19 @@ export default async function handler(req, res) {
 
     const customer = order.customer || {};
     const shipping = order.shipping_address || {};
-    const customerName = customer.first_name || shipping.first_name || 'Client';
-    const phone = customer.phone || order.phone || shipping.phone || 'Not Provided';
+    const billing = order.billing_address || {};
+    const customerName = customer.first_name || shipping.first_name || billing.first_name || 'Client';
+    const phone = customer.phone || order.phone || billing.phone || shipping.phone || 'Not Provided';
+
     const noteAttrs = Array.isArray(order.note_attributes) ? order.note_attributes : [];
-    const getNote = (key) => {
-      const match = noteAttrs.find(n => n.name && n.name.toLowerCase() === key.toLowerCase());
-      return match ? match.value : 'Not Provided';
-    };
+    function getNote(key) {
+      for (var i = 0; i < noteAttrs.length; i++) {
+        if (noteAttrs[i].name && noteAttrs[i].name.toLowerCase() === key.toLowerCase()) {
+          return noteAttrs[i].value;
+        }
+      }
+      return 'Not Provided';
+    }
 
     const record = {
       id: 'shopify_' + order.id,
@@ -61,7 +67,7 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('Supabase error:', error.message);
-      return res.status(500).json({ error: 'Database write failed' });
+      return res.status(500).json({ error: 'Database write failed: ' + error.message });
     }
 
     return res.status(200).json({ message: 'Success' });
