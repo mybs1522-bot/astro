@@ -109,27 +109,91 @@ export default function AdminDashboard({ onNavigateStorefront, onViewReport }) {
     }
   };
 
-  const handleViewReport = (ord) => {
-    if (ord.report_data) {
-      onViewReport(ord.report_data);
-    } else {
-      // Parse birth parameters if string
-      const [d, m, y] = (ord.dob || '15/08/1995').split('/');
-      const fallbackReport = generateReport(
-        ord.report_id || 'career-growth-remedy',
-        {
-          fullName: ord.client_name,
-          gender: ord.gender || 'Male',
-          dob: { day: d || '15', month: m || '08', year: y || '1995' },
-          tob: { hour: '08', minute: '30', ampm: 'AM' },
-          pob: { name: ord.pob || 'New Delhi', state: '', country: 'India' },
-          pobText: ord.pob || 'New Delhi, India',
-          whatsappNumber: ord.whatsapp || ''
-        },
-        'hi'
-      );
-      onViewReport(fallbackReport);
+  const handleViewReport = (ord, lang = 'hi') => {
+    // Parse birth date (handles DD/MM/YYYY and YYYY-MM-DD)
+    let d = '15', m = '08', y = '1995';
+    if (ord.dob) {
+      if (ord.dob.includes('/')) {
+        const parts = ord.dob.split('/');
+        d = parts[0] || '15';
+        m = parts[1] || '08';
+        y = parts[2] || '1995';
+      } else if (ord.dob.includes('-')) {
+        const parts = ord.dob.split('-');
+        y = parts[0] || '1995';
+        m = parts[1] || '08';
+        d = parts[2] || '15';
+      }
     }
+
+    // Parse birth time (handles HH:MM AM/PM, 24h, and unknown)
+    let hour = '12', minute = '00', ampm = 'PM', timeUnknown = false;
+    if (ord.tob) {
+      if (ord.tob.toLowerCase().includes('unknown')) {
+        timeUnknown = true;
+      } else {
+        const match = ord.tob.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+        if (match) {
+          let h = parseInt(match[1], 10);
+          const rawAmpm = match[3] ? match[3].toUpperCase() : null;
+          if (!rawAmpm && h >= 12) {
+            ampm = 'PM';
+            if (h > 12) h -= 12;
+          } else if (!rawAmpm && h < 12) {
+            ampm = 'AM';
+            if (h === 0) h = 12;
+          } else {
+            ampm = rawAmpm || 'AM';
+          }
+          hour = String(h).padStart(2, '0');
+          minute = match[2];
+        }
+      }
+    }
+
+    const orderDate = ord.created_at
+      ? new Date(ord.created_at).toLocaleDateString('en-GB').replace(/\//g, '-')
+      : new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+
+    const rawOrderId = ord.name || ord.id?.replace(/^shopify_/, '') || 'Order';
+    const productName = ord.report_title || 'Personalized Karz Mukti Report & Remedy';
+
+    const isFemale = ord.gender === 'महिला' || (typeof ord.gender === 'string' && ord.gender.toLowerCase() === 'female');
+
+    const birthData = {
+      fullName: ord.client_name || 'Client',
+      gender: isFemale ? 'female' : 'male',
+      dob: { day: d, month: m, year: y },
+      tob: { hour, minute, ampm },
+      timeUnknown,
+      pob: { name: ord.pob || 'New Delhi, India', state: '', country: 'India' },
+      pobText: ord.pob || 'New Delhi, India',
+      whatsappNumber: ord.whatsapp || '',
+      orderId: ord.id || '',
+      orderName: rawOrderId,
+      orderDate,
+      productName
+    };
+
+    // Always generate freshly for the requested language
+    const reportToView = generateReport(
+      ord.report_id || 'karz-mukti-remedy',
+      birthData,
+      lang
+    );
+    reportToView.orderId = ord.id;
+    reportToView.orderName = rawOrderId;
+    reportToView.orderDate = orderDate;
+    reportToView.productName = productName;
+    reportToView.language = lang;
+    if (!reportToView.user) reportToView.user = {};
+    reportToView.user.language = lang;
+    reportToView.user.orderId = ord.id;
+    reportToView.user.orderName = rawOrderId;
+    reportToView.user.orderDate = orderDate;
+    reportToView.user.productName = productName;
+
+    onViewReport(reportToView, lang);
   };
 
   const handleSendWhatsAppReport = (ord) => {
@@ -569,15 +633,27 @@ CREATE POLICY "Allow public delete" ON public.reports FOR DELETE USING (true);`;
                       {/* Generated Report View & WhatsApp Delivery Actions */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
+                          {/* Hindi Download/View */}
                           <button
-                            onClick={() => handleViewReport(ord)}
-                            className="inline-flex items-center space-x-1.5 bg-[#89270b] hover:bg-[#701e06] text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
-                            title="Open full 6-page report to inspect or download PDF"
+                            onClick={() => handleViewReport(ord, 'hi')}
+                            className="inline-flex items-center space-x-1 bg-[#89270b] hover:bg-[#701e06] text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
+                            title="Open & Download 6-Page Vedic Report in Hindi"
                           >
-                            <Eye className="w-3.5 h-3.5 text-yellow-300" />
-                            <span>View & Download</span>
+                            <Download className="w-3.5 h-3.5 text-yellow-300" />
+                            <span>🇮🇳 हिंदी PDF</span>
                           </button>
 
+                          {/* English Download/View */}
+                          <button
+                            onClick={() => handleViewReport(ord, 'en')}
+                            className="inline-flex items-center space-x-1 bg-amber-800 hover:bg-amber-900 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
+                            title="Open & Download 6-Page Vedic Report in English"
+                          >
+                            <Download className="w-3.5 h-3.5 text-amber-200" />
+                            <span>🇬🇧 English PDF</span>
+                          </button>
+
+                          {/* WhatsApp */}
                           {ord.whatsapp && ord.whatsapp !== 'Not Provided' && (
                             <button
                               onClick={() => handleSendWhatsAppReport(ord)}
@@ -585,7 +661,7 @@ CREATE POLICY "Allow public delete" ON public.reports FOR DELETE USING (true);`;
                               title="Open WhatsApp with pre-filled report delivery message"
                             >
                               <MessageCircle className="w-3.5 h-3.5 text-emerald-200" />
-                              <span>Send WhatsApp</span>
+                              <span>WhatsApp</span>
                             </button>
                           )}
                         </div>

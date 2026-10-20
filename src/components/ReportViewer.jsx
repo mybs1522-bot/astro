@@ -28,6 +28,7 @@ import {
   X
 } from 'lucide-react';
 import KundliChart from './KundliChart';
+import { generateReport } from '../utils/reportGenerator';
 
 export default function ReportViewer({
   reportData,
@@ -38,8 +39,107 @@ export default function ReportViewer({
   onDownloadComplete,
   onRegenerateReport
 }) {
-  const isHindi = language === 'hi';
+  const buildReportForLang = (baseReport, targetLang) => {
+    if (!baseReport) return baseReport;
+    try {
+      const u = baseReport.user || {};
+      let d = '15', m = '08', y = '1995';
+      if (u.dobFormatted) {
+        if (u.dobFormatted.includes('/')) {
+          const parts = u.dobFormatted.split('/');
+          d = parts[0] || '15';
+          m = parts[1] || '08';
+          y = parts[2] || '1995';
+        } else if (u.dobFormatted.includes('-')) {
+          const parts = u.dobFormatted.split('-');
+          y = parts[0] || '1995';
+          m = parts[1] || '08';
+          d = parts[2] || '15';
+        }
+      }
+      let h = '12', min = '00', am = 'PM';
+      let isUnknown = false;
+      if (u.tobFormatted) {
+        if (u.tobFormatted.includes('अज्ञात') || u.tobFormatted.toLowerCase().includes('unknown')) {
+          isUnknown = true;
+        } else {
+          const match = u.tobFormatted.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+          if (match) {
+            h = match[1]; min = match[2]; am = match[3] || 'PM';
+          }
+        }
+      }
+      const isFemale = u.gender === 'महिला' || (typeof u.gender === 'string' && u.gender.toLowerCase() === 'female');
+      const fresh = generateReport(
+        baseReport.reportConfig?.id || baseReport.reportId || 'karz-mukti-remedy',
+        {
+          fullName: u.fullName,
+          gender: isFemale ? 'female' : 'male',
+          dob: { day: d, month: m, year: y },
+          tob: { hour: h, minute: min, ampm: am },
+          timeUnknown: isUnknown,
+          pob: { name: u.pob, lat: parseFloat(u.lat) || 28.6139, lon: parseFloat(u.lon) || 77.2090 },
+          pobText: u.pob,
+          whatsappNumber: u.whatsappNumber || '',
+          orderId: baseReport.orderId || u.orderId || '',
+          orderName: baseReport.orderName || u.orderName || '',
+          orderDate: baseReport.orderDate || u.orderDate || '',
+          productName: baseReport.productName || baseReport.report_title || baseReport.reportConfig?.title || 'Personalized Karz Mukti Report & Remedy'
+        },
+        targetLang
+      );
+
+      fresh.orderId = baseReport.orderId || u.orderId;
+      fresh.orderName = baseReport.orderName || u.orderName;
+      fresh.orderDate = baseReport.orderDate || u.orderDate;
+      fresh.productName = baseReport.productName || baseReport.report_title || baseReport.reportConfig?.title;
+      fresh.language = targetLang;
+      if (!fresh.user) fresh.user = {};
+      fresh.user.language = targetLang;
+      fresh.user.orderId = fresh.orderId;
+      fresh.user.orderName = fresh.orderName;
+      fresh.user.orderDate = fresh.orderDate;
+      fresh.user.productName = fresh.productName;
+      return fresh;
+    } catch (err) {
+      console.error('buildReportForLang error:', err);
+      return baseReport;
+    }
+  };
+
+  const initialLang = language || reportData?.language || reportData?.user?.language || 'hi';
+  const [currentLang, setCurrentLang] = useState(initialLang);
+  const [currentReport, setCurrentReport] = useState(() => {
+    if (!reportData) return null;
+    const isReportHindi = reportData.isHindi ?? (reportData.pages?.[1]?.headerTitle?.includes('विश्लेषण') || false);
+    if (isReportHindi !== (initialLang === 'hi')) {
+      return buildReportForLang(reportData, initialLang);
+    }
+    return reportData;
+  });
+
+  useEffect(() => {
+    if (!reportData) return;
+    const targetLang = language || reportData.language || reportData.user?.language || 'hi';
+    setCurrentLang(targetLang);
+    const isReportHindi = reportData.isHindi ?? (reportData.pages?.[1]?.headerTitle?.includes('विश्लेषण') || false);
+    if (isReportHindi !== (targetLang === 'hi')) {
+      const fresh = buildReportForLang(reportData, targetLang);
+      setCurrentReport(fresh);
+    } else {
+      setCurrentReport(reportData);
+    }
+  }, [reportData, language]);
+
+  const isHindi = currentLang === 'hi';
   const reportRef = useRef(null);
+
+  const handleChangeLanguage = (newLang) => {
+    if (newLang === currentLang) return;
+    setCurrentLang(newLang);
+    const fresh = buildReportForLang(currentReport, newLang);
+    setCurrentReport(fresh);
+  };
   const [isExporting, setIsExporting] = useState(false);
   const [activePageView, setActivePageView] = useState('all'); // 'all' or 1, 2, 3, 4, 5, 6
   const [downloadStatus, setDownloadStatus] = useState(autoDownload ? 'downloading' : 'idle');
@@ -59,7 +159,7 @@ export default function ReportViewer({
     certId,
     generatedAt,
     isAiEnhanced
-  } = reportData;
+  } = currentReport || reportData;
 
   const [page1, page2, page3, page4, page5, page6] = pages;
   const reportTitle = isHindi ? reportConfig.titleHi : reportConfig.title;
@@ -82,8 +182,18 @@ export default function ReportViewer({
           throw new Error('Report element not found in DOM');
         }
 
-        const cleanName = (user.fullName || 'Client').trim().replace(/[^a-zA-Z0-9_\u0900-\u097F]/g, '_');
-        const filename = `${cleanName}_${reportConfig.id}_Certified_Report.pdf`;
+        const cleanName = (user.fullName || 'Client').trim().replace(/[/\\:*?"<>|]/g, '').replace(/\s+/g, ' ');
+        const rawOrderId = (currentReport.orderName || user.orderName || user.orderId || currentReport.orderId || currentReport.id || 'Order')
+          .replace(/^shopify_/, '')
+          .replace(/[/\\:*?"<>|]/g, '')
+          .trim();
+        const orderDate = user.orderDate || currentReport.orderDate || (currentReport.createdAt ? new Date(currentReport.createdAt).toLocaleDateString('en-GB').replace(/\//g, '-') : new Date().toLocaleDateString('en-GB').replace(/\//g, '-'));
+        const productName = (currentReport.productName || currentReport.report_title || reportConfig?.title || 'Personalized Karz Mukti Report & Remedy')
+          .trim()
+          .replace(/[/\\:*?"<>|]/g, '')
+          .replace(/\s+/g, ' ');
+
+        const filename = `${cleanName}_${rawOrderId}_${orderDate}_${productName}_cirtified report.pdf`;
 
         const opt = {
           margin: [4, 4, 4, 4],
@@ -249,6 +359,31 @@ export default function ReportViewer({
               <Bot className="w-4 h-4 text-purple-600" />
               <span>{isAiEnhanced ? 'Gemini 2.5 AI Active ✨' : 'Gemini AI API ⚙️'}</span>
             </button>
+
+            <div className="inline-flex rounded-xl p-0.5 bg-amber-100/90 border border-amber-300">
+              <button
+                type="button"
+                onClick={() => handleChangeLanguage('hi')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  currentLang === 'hi'
+                    ? 'bg-[#89270b] text-white shadow-xs'
+                    : 'text-amber-900 hover:text-amber-700'
+                }`}
+              >
+                🇮🇳 हिंदी
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChangeLanguage('en')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  currentLang === 'en'
+                    ? 'bg-[#89270b] text-white shadow-xs'
+                    : 'text-amber-900 hover:text-amber-700'
+                }`}
+              >
+                🇬🇧 English
+              </button>
+            </div>
 
             <button
               onClick={handlePrint}
@@ -519,7 +654,7 @@ export default function ReportViewer({
                   
                   {/* SVG Kundli Diamond */}
                   <div className="flex justify-center p-3 rounded-2xl" style={{ backgroundColor: '#FFFDF5', border: '1px solid #FDE68A' }}>
-                    <KundliChart kundli={kundli} language={language} />
+                    <KundliChart kundli={kundli} language={currentLang} />
                   </div>
 
                   {/* 9 Graha Ephemeris Table with Vibrant Terracotta Header */}
@@ -1100,7 +1235,7 @@ export default function ReportViewer({
                     <span className="text-gray-500 block">{isHindi ? 'अनुशंसित रत्न' : 'Auspicious Gemstone'}</span>
                     <strong className="text-sm block font-bold" style={{ color: '#89270B' }}>{page5.gemstoneAndRudraksha.stone}</strong>
                     <span className="text-[11px] text-gray-600 mt-1 block">
-                      धातु: {page5.gemstoneAndRudraksha.metal} • अंगुली: {page5.gemstoneAndRudraksha.finger} • दिन: {page5.gemstoneAndRudraksha.day}
+                      {isHindi ? 'धातु: ' : 'Metal: '}{page5.gemstoneAndRudraksha.metal} • {isHindi ? 'अंगुली: ' : 'Finger: '}{page5.gemstoneAndRudraksha.finger} • {isHindi ? 'दिन: ' : 'Day: '}{page5.gemstoneAndRudraksha.day}
                     </span>
                   </div>
 

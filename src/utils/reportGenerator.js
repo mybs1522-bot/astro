@@ -13,6 +13,7 @@ export function generateReport(reportId, birthData, language = 'hi') {
   const isHindi = language === 'hi';
 
   const { fullName, gender, pob, dob, tob, timeUnknown } = birthData;
+  const isFemale = (typeof gender === 'string') && (gender.toLowerCase() === 'female' || gender === 'महिला');
   const { 
     lagna, 
     moonRashi, 
@@ -37,11 +38,16 @@ export function generateReport(reportId, birthData, language = 'hi') {
   // Format Birth Meta
   const userMeta = {
     fullName: fullName || (isHindi ? 'आदरणीय जातक' : 'Honored Client'),
-    gender: gender === 'female' ? (isHindi ? 'महिला' : 'Female') : (isHindi ? 'पुरुष' : 'Male'),
+    gender: isFemale ? (isHindi ? 'महिला' : 'Female') : (isHindi ? 'पुरुष' : 'Male'),
     pob: pob?.name ? `${pob.name}, ${pob.state || pob.country}` : 'New Delhi, India',
     lat: pob?.lat ? pob.lat.toFixed(4) : '28.6139',
     lon: pob?.lon ? pob.lon.toFixed(4) : '77.2090',
     dobFormatted: `${dob.day}/${dob.month}/${dob.year}`,
+    orderId: birthData.orderId || '',
+    orderName: birthData.orderName || '',
+    orderDate: birthData.orderDate || '',
+    productName: birthData.productName || '',
+    language: language,
     tobFormatted: timeUnknown 
       ? (isHindi ? 'अज्ञात (चन्द्र लग्न पद्धति अनुसार)' : 'Unknown (Calculated via Chandra Lagna)') 
       : `${tob.hour}:${tob.minute} ${tob.ampm}`,
@@ -64,16 +70,26 @@ export function generateReport(reportId, birthData, language = 'hi') {
     headerSub: isHindi ? 'लाहिड़ी अयनांश पर आधारित 100% शुद्ध गणना' : '100% Ephemeris Verified Nirayana Lahiri Calculations',
     user: userMeta,
     panchang: {
-      tithi: isHindi ? `शुक्ल/कृष्ण ${tithi} तिथि` : `Tithi ${tithi}`,
-      nakshatra: `${nakshatra.name} (${nakshatra.hindi}) - चरण ${charan}`,
-      nakshatraLord: isHindi ? nakshatra.lord : nakshatra.lord,
-      lagnaRashi: `${lagna.rashi.name} (${lagna.rashi.hindi})`,
+      tithi: isHindi 
+        ? (() => {
+            const m = [...tithi.matchAll(/\(([^)]*[\u0900-\u097F][^)]*)\)/g)].map(x => x[1]);
+            const pakshaHi = tithi.includes('Shukla') ? 'शुक्ल पक्ष' : 'कृष्ण पक्ष';
+            return `${pakshaHi} ${m[1] || m[0] || ''} तिथि`;
+          })()
+        : `${tithi.replace(/\s*\([^)]*[\u0900-\u097F][^)]*\)/g, '').trim()}`,
+      nakshatra: isHindi 
+        ? `${nakshatra.hindi} (${nakshatra.name}) - चरण ${charan}`
+        : `${nakshatra.name} - Pada ${charan}`,
+      nakshatraLord: isHindi ? (nakshatra.lordHi || nakshatra.lord) : nakshatra.lord,
+      lagnaRashi: isHindi ? `${lagna.rashi.hindi} (${lagna.rashi.name})` : lagna.rashi.name,
       lagnaLord: isHindi ? lagna.rashi.lordHi : lagna.rashi.lord,
-      moonSign: `${moonRashi.name} (${moonRashi.hindi})`,
+      moonSign: isHindi ? `${moonRashi.hindi} (${moonRashi.name})` : moonRashi.name,
       element: isHindi ? lagna.rashi.elementHi : lagna.rashi.element,
-      varna: varna,
-      gan: nakshatra.gana || 'Deva',
-      yoni: nakshatra.yoni || 'Gaj'
+      varna: isHindi 
+        ? (varna.match(/\(([^)]*[ऀ-ॿ][^)]*)\)/)?.[1] || varna)
+        : varna.replace(/\s*\([^)]*[ऀ-ॿ][^)]*\)/g, '').trim(),
+      gan: isHindi ? (nakshatra.ganaHi || (nakshatra.gana === 'Deva' ? 'देव' : nakshatra.gana === 'Manushya' ? 'मनुष्य' : 'राक्षस')) : (nakshatra.gana || 'Deva'),
+      yoni: isHindi ? (nakshatra.yoniHi || (nakshatra.yoni === 'Gaj' ? 'गज' : nakshatra.yoni === 'Ashwa' ? 'अश्व' : nakshatra.yoni)) : (nakshatra.yoni || 'Gaj')
     },
     kundli,
     planetsTable: planets.map(p => ({
@@ -220,7 +236,7 @@ Your planetary configuration reveals that past financial constraints were trigge
       };
 
       primaryMantra = {
-        sanskrit: '॥ Om Rin Mukteshwaraya Mahadevaya Namaha ॥',
+        sanskrit: '|| Om Rin Mukteshwaraya Mahadevaya Namaha ||',
         transliteration: 'Om Rin Mukteshwaraya Mahadevaya Namaha',
         meaning: 'Salutations to Lord Shiva, the supreme cosmic liberator from all debts, anxieties, and worldly encumbrances.',
         count: '108 chants daily (1 Mala)',
@@ -386,7 +402,7 @@ A detailed perusal of your ephemeris shows immense latent intellect and executiv
       };
 
       primaryMantra = {
-        sanskrit: '॥ Om Hreem Hreem Suryaya Sahasrakiranaya Manovanchhit Phalam Dehi Dehi Swaha ॥',
+        sanskrit: '|| Om Hreem Hreem Suryaya Sahasrakiranaya Manovanchhit Phalam Dehi Dehi Swaha ||',
         transliteration: 'Om Hreem Hreem Suryaya Sahasrakiranaya Manovanchhit Phalam Dehi Dehi Swaha',
         meaning: 'O Radiant Sun of a thousand rays, bestow upon me executive honor, sovereign dignity, and professional triumph.',
         count: '108 chants daily (1 Mala)',
@@ -552,7 +568,7 @@ Detailed astronomical calculations show that recent delays in alliances were cau
       };
 
       primaryMantra = {
-        sanskrit: '॥ Om Katyayani Mahamaye Mahayoginyadheeshwari Nandagopasutam Devi Patim Me Kuru Te Namaha ॥',
+        sanskrit: '|| Om Katyayani Mahamaye Mahayoginyadheeshwari Nandagopasutam Devi Patim Me Kuru Te Namaha ||',
         transliteration: 'Om Katyayani Mahamaye Mahayoginyadheeshwari Nandagopasutam Devi Patim Me Kuru Te Namaha',
         meaning: 'O Divine Mother Katyayani, bless me with an honorable, loving, and long-lived life partner.',
         count: '108 chants daily (1 Mala)',
@@ -722,7 +738,7 @@ You are currently undergoing the **${currentDashaName} Mahadasha** and **${curre
       };
 
       primaryMantra = {
-        sanskrit: '॥ Om Namo Bhagavate Vasudevaya ॥',
+        sanskrit: '|| Om Namo Bhagavate Vasudevaya ||',
         transliteration: 'Om Namo Bhagavate Vasudevaya',
         meaning: 'Salutations to the Supreme Divine Preserver Lord Vasudeva, the shelter and illuminator of all cosmic beings.',
         count: '108 chants daily (1 Mala)',
@@ -877,6 +893,8 @@ You are currently undergoing the **${currentDashaName} Mahadasha** and **${curre
     reportConfig,
     user: userMeta,
     kundli,
+    language,
+    isHindi,
     pages: [page1, page2, page3, page4, page5, page6],
     // Backward compatibility helpers
     detailedAnalysis: diagnosisText,

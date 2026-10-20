@@ -8,7 +8,7 @@ import WhatsAppModal from './components/WhatsAppModal';
 import AdminDashboard from './components/AdminDashboard';
 import GurujiOrderSuccessModal from './components/GurujiOrderSuccessModal';
 import { generateReport, enhanceExistingReportWithAi } from './utils/reportGenerator';
-import { saveReportOrder, saveLeadCapture, updateLeadStatus } from './utils/supabaseClient';
+import { saveReportOrder, saveLeadCapture, updateLeadStatus, supabase } from './utils/supabaseClient';
 import { openRazorpayCheckout } from './utils/razorpayClient';
 import confetti from 'canvas-confetti';
 import { REPORTS_DATA } from './data/reports';
@@ -22,9 +22,30 @@ import {
   generateEventId 
 } from './utils/metaPixel';
 
+function extractOrderIdFromUrl() {
+  if (typeof window === 'undefined') return null;
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+  const hash = window.location.hash.toLowerCase().replace(/\/$/, '');
+  const searchParams = new URLSearchParams(window.location.search);
+  const queryOrder = searchParams.get('order') || searchParams.get('id');
+
+  if (queryOrder) return queryOrder;
+  if (hash.includes('/report/')) {
+    return window.location.hash.split(/report\//i)[1]?.split('?')[0];
+  }
+  if (path.includes('/report/')) {
+    return window.location.pathname.split(/report\//i)[1]?.split('?')[0];
+  }
+  return null;
+}
+
 function getInitialRoute() {
   if (typeof window === 'undefined') {
     return { view: 'catalog', reportId: 'career-growth-remedy' };
+  }
+  const directOrderId = extractOrderIdFromUrl();
+  if (directOrderId) {
+    return { view: 'report_loading', reportId: 'karz-mukti-remedy', orderId: directOrderId };
   }
   const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
   const hash = window.location.hash.toLowerCase().replace(/\/$/, '');
@@ -80,6 +101,47 @@ export default function App() {
 
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [activeReportData, setActiveReportData] = useState(null);
+  const [directReportLoading, setDirectReportLoading] = useState(Boolean(initialRoute.orderId));
+  const [directReportError, setDirectReportError] = useState(null);
+
+  const loadDirectReport = async (orderId) => {
+    if (!orderId) return;
+    setDirectReportLoading(true);
+    setDirectReportError(null);
+    try {
+      const { data, error } = await supabase.from('reports').select('*').eq('id', orderId).single();
+      setDirectReportLoading(false);
+      if (data && data.report_data) {
+        setActiveReportData(data.report_data);
+        setCurrentView('report');
+      } else if (data) {
+        const [d, m, y] = (data.dob || '15/08/1995').split('/');
+        const fallback = generateReport(data.report_id || 'karz-mukti-remedy', {
+          fullName: data.client_name || 'Client',
+          gender: data.gender || 'Male',
+          dob: { day: d || '15', month: m || '08', year: y || '1995' },
+          tob: { hour: '12', minute: '00', ampm: 'PM' },
+          pob: { name: data.pob || 'New Delhi, India', state: '', country: 'India' },
+          pobText: data.pob || 'New Delhi, India',
+          whatsappNumber: data.whatsapp || ''
+        }, 'hi');
+        setActiveReportData(fallback);
+        setCurrentView('report');
+      } else {
+        setDirectReportError('रिपोर्ट उपलब्ध नहीं है या संदर्भ संख्या अमान्य है।');
+      }
+    } catch (err) {
+      setDirectReportLoading(false);
+      setDirectReportError('रिपोर्ट लोड करने में त्रुटि हुई।');
+    }
+  };
+
+  useEffect(() => {
+    const directId = extractOrderIdFromUrl();
+    if (directId) {
+      loadDirectReport(directId);
+    }
+  }, []);
   const [shouldAutoDownload, setShouldAutoDownload] = useState(false);
   const [isGurujiSuccessModalOpen, setIsGurujiSuccessModalOpen] = useState(false);
   const [gurujiOrderInfo, setGurujiOrderInfo] = useState(null);
@@ -102,6 +164,13 @@ export default function App() {
     const handleUrlRoute = () => {
       const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
       const hash = window.location.hash.toLowerCase().replace(/\/$/, '');
+
+      const directId = extractOrderIdFromUrl();
+      if (directId) {
+        setIsLanguageModalOpen(false);
+        loadDirectReport(directId);
+        return;
+      }
 
       // Check admin dashboard route
       if (path === '/admin' || path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') {
@@ -415,7 +484,8 @@ export default function App() {
         {currentView === 'admin' && (
           <AdminDashboard
             onNavigateStorefront={handleGoHome}
-            onViewReport={(reportData) => {
+            onViewReport={(reportData, lang) => {
+              if (lang) setLanguage(lang);
               setActiveReportData(reportData);
               setCurrentView('report');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -466,7 +536,28 @@ export default function App() {
           </div>
         )}
 
-        {currentView === 'report' && (
+        {directReportLoading && (
+          <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-16 h-16 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h2 className="text-xl font-bold text-amber-900 font-serif">॥ ॐ श्री गणेशाय नमः ॥</h2>
+            <p className="text-amber-800 mt-2">आपकी व्यक्तिगत 6-पेज की वैदिक कुंडली एवं कर्ज मुक्ति रिपोर्ट लोड हो रही है...</p>
+            <p className="text-xs text-amber-600 mt-1">100% Nirayana Lahiri Ephemeris Verified Calculations</p>
+          </div>
+        )}
+
+        {directReportError && (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
+            <div className="bg-amber-50 border border-amber-200 p-8 rounded-2xl max-w-md shadow-sm">
+              <h3 className="text-lg font-bold text-red-700">रिपोर्ट नहीं मिली</h3>
+              <p className="text-sm text-gray-700 mt-2">{directReportError}</p>
+              <button onClick={() => setCurrentView('catalog')} className="mt-5 px-6 py-2.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-sm font-semibold transition">
+                मुख्य पृष्ठ पर जाएं
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentView === 'report' && !directReportLoading && (
           <ReportViewer
             reportData={activeReportData}
             onBack={handleGoHome}
