@@ -136,27 +136,33 @@ export default function App() {
 
         // Robust TOB parsing
         let hour = '12', minute = '00', ampm = 'PM', timeUnknown = false;
-        if (data.tob) {
-          const tobStr = String(data.tob).toLowerCase();
-          if (tobStr.includes('unknown') || tobStr.includes('अज्ञात')) {
-            timeUnknown = true;
-          } else {
-            const match = data.tob.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
-            if (match) {
-              let h = parseInt(match[1], 10);
-              const rawAmpm = match[3]?.toUpperCase();
-              if (!rawAmpm && h >= 12) {
-                ampm = 'PM';
-                if (h > 12) h -= 12;
-              } else if (!rawAmpm && h < 12) {
-                ampm = 'AM';
-                if (h === 0) h = 12;
-              } else {
-                ampm = rawAmpm || 'AM';
-              }
-              hour = String(h).padStart(2, '0');
-              minute = match[2];
+        const rawTobStr = data.tob ? String(data.tob).trim().toLowerCase() : '';
+        if (
+          !rawTobStr ||
+          rawTobStr === '12:00 pm' ||
+          rawTobStr === 'unknown / 12:00 pm' ||
+          rawTobStr.includes('unknown') ||
+          rawTobStr.includes('अज्ञात') ||
+          rawTobStr.includes('not provided') ||
+          rawTobStr.includes('उपलब्ध नहीं')
+        ) {
+          timeUnknown = true;
+        } else {
+          const match = data.tob.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+          if (match) {
+            let h = parseInt(match[1], 10);
+            const rawAmpm = match[3]?.toUpperCase();
+            if (!rawAmpm && h >= 12) {
+              ampm = 'PM';
+              if (h > 12) h -= 12;
+            } else if (!rawAmpm && h < 12) {
+              ampm = 'AM';
+              if (h === 0) h = 12;
+            } else {
+              ampm = rawAmpm || 'AM';
             }
+            hour = String(h).padStart(2, '0');
+            minute = match[2];
           }
         }
 
