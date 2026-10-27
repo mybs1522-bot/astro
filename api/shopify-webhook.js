@@ -8,7 +8,25 @@ const APP_BASE_URL = process.env.APP_BASE_URL || 'https://astro-liard-two.vercel
 
 const supabase = SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
+function formatTobForEmail(tob) {
+  if (!tob) return 'अज्ञात (चन्द्र लग्न पद्धति अनुसार)';
+  const s = String(tob).trim().toLowerCase();
+  if (
+    s === '' ||
+    s === '12:00 pm' ||
+    s === 'unknown / 12:00 pm' ||
+    s.includes('unknown') ||
+    s.includes('अज्ञात') ||
+    s.includes('not provided') ||
+    s.includes('उपलब्ध नहीं')
+  ) {
+    return 'अज्ञात (चन्द्र लग्न पद्धति अनुसार)';
+  }
+  return tob;
+}
+
 function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName }) {
+  const displayTob = formatTobForEmail(tob);
   return `
 <!DOCTYPE html>
 <html lang="hi">
@@ -49,7 +67,7 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
                   </tr>
                   <tr>
                     <td style="color: #78350f; font-weight: 600;">जन्म समय (TOB):</td>
-                    <td>${tob || 'उपलब्ध नहीं'}</td>
+                    <td>${displayTob}</td>
                   </tr>
                   <tr>
                     <td style="color: #78350f; font-weight: 600;">जन्म स्थान (POB):</td>
@@ -140,18 +158,84 @@ function extractCustomerData(order, targetItem) {
     }
   }
 
-  let tob = getVal(['Time of Birth', 'TOB', 'Birth Time', 'समय']) || '';
-  const tob24h = getVal(['_tob_24h']);
-  const timeKnown = getVal(['_time_known']);
-  if (timeKnown === 'no' || timeKnown === 'false') {
-    tob = 'Unknown / 12:00 PM';
-  } else if (!tob && tob24h) {
-    const [h, m] = tob24h.split(':');
-    let hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    if (hour > 12) hour -= 12;
-    if (hour === 0) hour = 12;
-    tob = `${String(hour).padStart(2, '0')}:${m || '00'} ${ampm}`;
+  // Comprehensive TOB extraction across properties, note attributes, and order note
+  const tobKeys = [
+    'time of birth', 'tob', 'birth time', 'birth_time', 'time_of_birth',
+    'time', 'जन्म समय', 'समय', 'birth time (tob)', 'time of birth (tob)',
+    '_tob', '_tob_24h', '_tob_12h', 'janm samay', 'janam samay'
+  ];
+
+  let rawTob = null;
+  for (const k of tobKeys) {
+    const p = props.find(x => x.name && x.name.trim().toLowerCase() === k);
+    if (p && p.value && String(p.value).trim()) {
+      rawTob = String(p.value).trim();
+      break;
+    }
+  }
+
+  if (!rawTob) {
+    for (const k of tobKeys) {
+      const n = noteAttrs.find(x => x.name && x.name.trim().toLowerCase() === k);
+      if (n && n.value && String(n.value).trim()) {
+        rawTob = String(n.value).trim();
+        break;
+      }
+    }
+  }
+
+  // Fuzzy check for any property containing time
+  if (!rawTob) {
+    const fuzzyProp = props.find(x => x.name && /time|tob|समय/i.test(x.name) && !/known|zone|order/i.test(x.name));
+    if (fuzzyProp && fuzzyProp.value && String(fuzzyProp.value).trim()) {
+      rawTob = String(fuzzyProp.value).trim();
+    }
+  }
+
+  // Check order.note
+  if (!rawTob && order.note && typeof order.note === 'string') {
+    const noteMatch = order.note.match(/(?:time\s*(?:of\s*birth)?|tob|समय|birth\s*time)\s*[:=-]\s*([^\r\n,]+)/i);
+    if (noteMatch && noteMatch[1]) {
+      rawTob = noteMatch[1].trim();
+    }
+  }
+
+  // Check split hour / minute fields
+  if (!rawTob) {
+    const hr = getVal(['hour', 'birth hour', 'hr', 'hours']);
+    const min = getVal(['minute', 'birth minute', 'min', 'minutes']) || '00';
+    const ampm = getVal(['ampm', 'am/pm', 'period']);
+    if (hr) {
+      rawTob = `${hr}:${min} ${ampm || 'AM'}`.trim();
+    }
+  }
+
+  const timeKnown = getVal(['_time_known', 'time_known', 'timeKnown', 'exact_time_known']);
+  const isExplicitlyUnknown = timeKnown === 'no' || timeKnown === 'false' || (rawTob && /unknown|अज्ञात/i.test(rawTob));
+
+  let finalTob = 'अज्ञात (चन्द्र लग्न अनुसार)';
+  if (isExplicitlyUnknown || !rawTob || rawTob.toLowerCase() === 'not provided') {
+    finalTob = 'अज्ञात (चन्द्र लग्न अनुसार)';
+  } else {
+    const match = rawTob.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = match[2];
+      const parsedAmpm = match[3]?.toUpperCase();
+      if (!parsedAmpm && h >= 12) {
+        const ampm = 'PM';
+        if (h > 12) h -= 12;
+        finalTob = `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+      } else if (!parsedAmpm && h < 12) {
+        const ampm = 'AM';
+        if (h === 0) h = 12;
+        finalTob = `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+      } else {
+        finalTob = `${String(h).padStart(2, '0')}:${m} ${parsedAmpm || 'AM'}`;
+      }
+    } else {
+      finalTob = rawTob;
+    }
   }
 
   const pob = getVal(['Place of Birth', 'POB', 'Birth Place', 'स्थान']) || 'New Delhi, India';
@@ -165,7 +249,7 @@ function extractCustomerData(order, targetItem) {
   const rawLang = getVal(['Language', 'भाषा']) || 'हिंदी';
   const language = rawLang.toLowerCase().includes('eng') ? 'en' : 'hi';
 
-  return { fullName, gender, dob: dob || '15/08/1995', tob: tob || '12:00 PM', pob, whatsapp, language };
+  return { fullName, gender, dob: dob || '15/08/1995', tob: finalTob, pob, whatsapp, language };
 }
 
 export default async function handler(req, res) {

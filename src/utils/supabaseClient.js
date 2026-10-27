@@ -188,7 +188,7 @@ export async function saveReportOrder(orderData) {
     client_name: orderData.client_name || orderData.user?.fullName || 'Client',
     gender: orderData.gender || orderData.user?.gender || 'Male',
     dob: orderData.dob || orderData.user?.dobFormatted || '15/08/1995',
-    tob: orderData.tob || orderData.user?.tobFormatted || '12:00 PM',
+    tob: orderData.tob || orderData.user?.tobFormatted || 'अज्ञात (चन्द्र लग्न अनुसार)',
     pob: orderData.pob || orderData.user?.pob || 'New Delhi, India',
     whatsapp: orderData.whatsapp || orderData.user?.whatsappNumber || 'Not Provided',
     report_id: orderData.report_id || orderData.reportConfig?.id || 'career-growth-remedy',

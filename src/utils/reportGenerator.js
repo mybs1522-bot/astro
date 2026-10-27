@@ -7,12 +7,13 @@ import { enhanceReportWithGemini } from './geminiReportEnhancer.js';
  * Generates structured, authentic, compassionate, and plain-language
  * 6-page reports for all 22 Vedic services in both Hindi and English.
  */
-export function generateReport(reportId, birthData, language = 'hi') {
+export function generateReport(reportId, birthData = {}, language = 'hi') {
+  const bData = birthData || {};
   const reportConfig = REPORTS_DATA.find(r => r.id === reportId) || REPORTS_DATA[0];
-  const kundli = calculateKundli(birthData);
+  const kundli = calculateKundli(bData);
   const isHindi = language === 'hi';
 
-  const { fullName, gender, pob, dob, tob, timeUnknown } = birthData;
+  const { fullName, gender, pob, dob, tob, timeUnknown } = bData;
   const isFemale = (typeof gender === 'string') && (gender.toLowerCase() === 'female' || gender === 'महिला');
   const { 
     lagna, 
@@ -35,26 +36,56 @@ export function generateReport(reportId, birthData, language = 'hi') {
   const currentAntarName = isHindi ? runningMahadasha?.antardashaHi : runningMahadasha?.antardasha;
   const currentDashaEnd = runningMahadasha?.endYear;
 
+  // Ultra-resilient DOB resolution
+  let dobFormatted = '15/08/1995';
+  let dobYear = 1995, dobDay = 15;
+  if (typeof dob === 'string' && dob.trim() && dob !== 'Not Provided') {
+    dobFormatted = dob.trim();
+    const parts = dobFormatted.split(/[/|-]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        dobYear = parseInt(parts[0], 10) || 1995;
+        dobDay = parseInt(parts[2], 10) || 15;
+      } else {
+        dobDay = parseInt(parts[0], 10) || 15;
+        dobYear = parseInt(parts[2], 10) || 1995;
+      }
+    }
+  } else if (dob && typeof dob === 'object') {
+    dobDay = parseInt(dob.day, 10) || 15;
+    dobYear = parseInt(dob.year, 10) || 1995;
+    dobFormatted = `${String(dobDay).padStart(2, '0')}/${String(dob.month || 8).padStart(2, '0')}/${dobYear}`;
+  }
+
+  // Ultra-resilient TOB resolution
+  const isTimeUnknownFinal = Boolean(timeUnknown || kundli.isTimeUnknown);
+  let tobFormatted = isHindi ? 'अज्ञात (चन्द्र लग्न पद्धति अनुसार)' : 'Unknown (Calculated via Chandra Lagna)';
+  if (!isTimeUnknownFinal) {
+    if (typeof tob === 'string' && tob.trim() && tob !== 'Not Provided' && !tob.toLowerCase().includes('unknown')) {
+      tobFormatted = tob.trim();
+    } else if (tob && typeof tob === 'object' && tob.hour) {
+      tobFormatted = `${tob.hour}:${tob.minute || '00'} ${tob.ampm || 'PM'}`;
+    }
+  }
+
   // Format Birth Meta
   const userMeta = {
     fullName: fullName || (isHindi ? 'आदरणीय जातक' : 'Honored Client'),
     gender: isFemale ? (isHindi ? 'महिला' : 'Female') : (isHindi ? 'पुरुष' : 'Male'),
-    pob: pob?.name ? `${pob.name}, ${pob.state || pob.country}` : 'New Delhi, India',
-    lat: pob?.lat ? pob.lat.toFixed(4) : '28.6139',
-    lon: pob?.lon ? pob.lon.toFixed(4) : '77.2090',
-    dobFormatted: `${dob.day}/${dob.month}/${dob.year}`,
-    orderId: birthData.orderId || '',
-    orderName: birthData.orderName || '',
-    orderDate: birthData.orderDate || '',
-    productName: birthData.productName || '',
+    pob: kundli.pobResolved?.state ? `${kundli.pobResolved.name}, ${kundli.pobResolved.state}` : (kundli.pobResolved?.name || (typeof pob === 'string' ? pob : 'India')),
+    lat: kundli.pobResolved?.lat ? Number(kundli.pobResolved.lat).toFixed(4) : (pob?.lat ? Number(pob.lat).toFixed(4) : '28.6139'),
+    lon: kundli.pobResolved?.lon ? Number(kundli.pobResolved.lon).toFixed(4) : (pob?.lon ? Number(pob.lon).toFixed(4) : '77.2090'),
+    dobFormatted,
+    orderId: bData.orderId || '',
+    orderName: bData.orderName || '',
+    orderDate: bData.orderDate || '',
+    productName: bData.productName || '',
     language: language,
-    tobFormatted: timeUnknown 
-      ? (isHindi ? 'अज्ञात (चन्द्र लग्न पद्धति अनुसार)' : 'Unknown (Calculated via Chandra Lagna)') 
-      : `${tob.hour}:${tob.minute} ${tob.ampm}`,
+    tobFormatted,
     language
   };
 
-  const certId = `DJR-${Math.abs((dob.year * 997 + dob.day * 31 + Math.floor(Math.random() * 8999 + 1000))).toString().slice(0, 8)}`;
+  const certId = `DJR-${Math.abs((dobYear * 997 + dobDay * 31 + Math.floor(Math.random() * 8999 + 1000))).toString().slice(0, 8)}`;
   const certDate = new Date().toLocaleDateString(isHindi ? 'hi-IN' : 'en-US', {
     day: 'numeric',
     month: 'long',

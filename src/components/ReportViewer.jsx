@@ -78,7 +78,7 @@ export default function ReportViewer({
           dob: { day: d, month: m, year: y },
           tob: { hour: h, minute: min, ampm: am },
           timeUnknown: isUnknown,
-          pob: { name: u.pob, lat: parseFloat(u.lat) || 28.6139, lon: parseFloat(u.lon) || 77.2090 },
+          pob: (u.lat && u.lon && !isNaN(parseFloat(u.lat))) ? { name: u.pob, lat: parseFloat(u.lat), lon: parseFloat(u.lon) } : u.pob,
           pobText: u.pob,
           whatsappNumber: u.whatsappNumber || '',
           orderId: baseReport.orderId || u.orderId || '',

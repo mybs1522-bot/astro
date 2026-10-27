@@ -111,20 +111,87 @@ export default function App() {
     try {
       const { data, error } = await supabase.from('reports').select('*').eq('id', orderId).single();
       setDirectReportLoading(false);
-      if (data && data.report_data) {
-        setActiveReportData(data.report_data);
-        setCurrentView('report');
-      } else if (data) {
-        const [d, m, y] = (data.dob || '15/08/1995').split('/');
+      if (data) {
+        // Robust DOB parsing
+        let d = '15', m = '08', y = '1995';
+        if (data.dob && typeof data.dob === 'string') {
+          if (data.dob.includes('/')) {
+            const parts = data.dob.split('/');
+            d = parts[0]?.padStart(2, '0') || '15';
+            m = parts[1]?.padStart(2, '0') || '08';
+            y = parts[2] || '1995';
+          } else if (data.dob.includes('-')) {
+            const parts = data.dob.split('-');
+            if (parts[0]?.length === 4) {
+              y = parts[0];
+              m = parts[1]?.padStart(2, '0') || '08';
+              d = parts[2]?.padStart(2, '0') || '15';
+            } else {
+              d = parts[0]?.padStart(2, '0') || '15';
+              m = parts[1]?.padStart(2, '0') || '08';
+              y = parts[2] || '1995';
+            }
+          }
+        }
+
+        // Robust TOB parsing
+        let hour = '12', minute = '00', ampm = 'PM', timeUnknown = false;
+        if (data.tob) {
+          const tobStr = String(data.tob).toLowerCase();
+          if (tobStr.includes('unknown') || tobStr.includes('अज्ञात')) {
+            timeUnknown = true;
+          } else {
+            const match = data.tob.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+            if (match) {
+              let h = parseInt(match[1], 10);
+              const rawAmpm = match[3]?.toUpperCase();
+              if (!rawAmpm && h >= 12) {
+                ampm = 'PM';
+                if (h > 12) h -= 12;
+              } else if (!rawAmpm && h < 12) {
+                ampm = 'AM';
+                if (h === 0) h = 12;
+              } else {
+                ampm = rawAmpm || 'AM';
+              }
+              hour = String(h).padStart(2, '0');
+              minute = match[2];
+            }
+          }
+        }
+
+        const rawOrderId = data.name || data.id?.replace(/^shopify_/, '') || 'Order';
+        const orderDate = data.created_at
+          ? new Date(data.created_at).toLocaleDateString('en-GB').replace(/\//g, '-')
+          : new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+        const productName = data.report_title || 'Personalized Karz Mukti Report & Remedy';
+        const isFemale = data.gender === 'महिला' || (typeof data.gender === 'string' && data.gender.toLowerCase() === 'female');
+
         const fallback = generateReport(data.report_id || 'karz-mukti-remedy', {
           fullName: data.client_name || 'Client',
-          gender: data.gender || 'Male',
-          dob: { day: d || '15', month: m || '08', year: y || '1995' },
-          tob: { hour: '12', minute: '00', ampm: 'PM' },
-          pob: { name: data.pob || 'New Delhi, India', state: '', country: 'India' },
+          gender: isFemale ? 'female' : 'male',
+          dob: { day: d, month: m, year: y },
+          tob: { hour, minute, ampm },
+          timeUnknown,
+          pob: data.pob || 'New Delhi, India',
           pobText: data.pob || 'New Delhi, India',
-          whatsappNumber: data.whatsapp || ''
+          whatsappNumber: data.whatsapp || '',
+          orderId: data.id || '',
+          orderName: rawOrderId,
+          orderDate,
+          productName
         }, 'hi');
+
+        fallback.orderId = data.id;
+        fallback.orderName = rawOrderId;
+        fallback.orderDate = orderDate;
+        fallback.productName = productName;
+        if (!fallback.user) fallback.user = {};
+        fallback.user.orderId = data.id;
+        fallback.user.orderName = rawOrderId;
+        fallback.user.orderDate = orderDate;
+        fallback.user.productName = productName;
+
         setActiveReportData(fallback);
         setCurrentView('report');
       } else {
@@ -237,7 +304,7 @@ export default function App() {
       client_name: formData.fullName || 'Anonymous Client',
       gender: formData.gender || 'Male',
       dob: `${formData.dob.day}/${formData.dob.month}/${formData.dob.year}`,
-      tob: formData.timeUnknown ? 'Unknown / 12:00 PM' : `${formData.tob.hour}:${formData.tob.minute} ${formData.tob.ampm}`,
+      tob: formData.timeUnknown ? 'अज्ञात (चन्द्र लग्न अनुसार)' : `${formData.tob.hour}:${formData.tob.minute} ${formData.tob.ampm}`,
       pob: formData.pobText || (typeof formData.pob === 'string' ? formData.pob : formData.pob?.name) || 'New Delhi, India',
       whatsapp: formData.whatsappNumber || 'Not Provided',
       report_id: selectedReportId,
@@ -388,7 +455,7 @@ export default function App() {
       client_name: formData.fullName || 'Anonymous Client',
       gender: formData.gender || 'Male',
       dob: `${formData.dob.day}/${formData.dob.month}/${formData.dob.year}`,
-      tob: formData.timeUnknown ? 'Unknown / 12:00 PM' : `${formData.tob.hour}:${formData.tob.minute} ${formData.tob.ampm}`,
+      tob: formData.timeUnknown ? 'अज्ञात (चन्द्र लग्न अनुसार)' : `${formData.tob.hour}:${formData.tob.minute} ${formData.tob.ampm}`,
       pob: formData.pobText || (typeof formData.pob === 'string' ? formData.pob : formData.pob?.name) || 'New Delhi, India',
       whatsapp: formData.whatsappNumber || 'Not Provided',
       report_id: selectedReportId,

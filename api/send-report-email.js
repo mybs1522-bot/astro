@@ -8,7 +8,25 @@ const APP_BASE_URL = process.env.APP_BASE_URL || 'https://astro-liard-two.vercel
 
 const supabase = SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
+function formatTobForEmail(tob) {
+  if (!tob) return 'अज्ञात (चन्द्र लग्न पद्धति अनुसार)';
+  const s = String(tob).trim().toLowerCase();
+  if (
+    s === '' ||
+    s === '12:00 pm' ||
+    s === 'unknown / 12:00 pm' ||
+    s.includes('unknown') ||
+    s.includes('अज्ञात') ||
+    s.includes('not provided') ||
+    s.includes('उपलब्ध नहीं')
+  ) {
+    return 'अज्ञात (चन्द्र लग्न पद्धति अनुसार)';
+  }
+  return tob;
+}
+
 function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName }) {
+  const displayTob = formatTobForEmail(tob);
   return `
 <!DOCTYPE html>
 <html lang="hi">
@@ -49,7 +67,7 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
                   </tr>
                   <tr>
                     <td style="color: #78350f; font-weight: 600;">जन्म समय (TOB):</td>
-                    <td>${tob || 'उपलब्ध नहीं'}</td>
+                    <td>${displayTob}</td>
                   </tr>
                   <tr>
                     <td style="color: #78350f; font-weight: 600;">जन्म स्थान (POB):</td>
