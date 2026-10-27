@@ -109,7 +109,7 @@ export default function AdminDashboard({ onNavigateStorefront, onViewReport }) {
     }
   };
 
-  const handleViewReport = (ord, lang = 'hi') => {
+  const handleViewReport = (ord, lang = 'hi', specificReportId = null) => {
     // Parse birth date (handles DD/MM/YYYY and YYYY-MM-DD)
     let d = '15', m = '08', y = '1995';
     if (ord.dob) {
@@ -155,9 +155,19 @@ export default function AdminDashboard({ onNavigateStorefront, onViewReport }) {
       ? new Date(ord.created_at).toLocaleDateString('en-GB').replace(/\//g, '-')
       : new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
 
-    const rawOrderId = ord.name || ord.id?.replace(/^shopify_/, '') || 'Order';
-    const productName = ord.report_title || 'Personalized Karz Mukti Report & Remedy';
+    const effectiveReportId = specificReportId || ord.report_id || 'karz-mukti-remedy';
+    let effectiveTitle = ord.report_title || 'Personalized Karz Mukti Report & Remedy';
+    if (effectiveReportId === 'dhan-yog-report') {
+      effectiveTitle = lang === 'hi' ? 'धन योग एवं महालक्ष्मी कृपा रिपोर्ट' : 'Personalized Dhan Yog Report & Remedy';
+    } else if (effectiveReportId === 'karz-mukti-remedy') {
+      effectiveTitle = lang === 'hi' ? 'कर्ज मुक्ति एवं ऋण मोचन महा-रिपोर्ट' : 'Personalized Karz Mukti Report & Remedy';
+    }
 
+    const targetOrderId = specificReportId === 'dhan-yog-report'
+      ? (ord.id.endsWith('_dhan_yog') ? ord.id : `${ord.id}_dhan_yog`)
+      : (ord.id.endsWith('_dhan_yog') ? ord.id.replace('_dhan_yog', '') : ord.id);
+
+    const rawOrderId = ord.name || targetOrderId.replace(/^shopify_/, '') || 'Order';
     const isFemale = ord.gender === 'महिला' || (typeof ord.gender === 'string' && ord.gender.toLowerCase() === 'female');
 
     const birthData = {
@@ -169,29 +179,28 @@ export default function AdminDashboard({ onNavigateStorefront, onViewReport }) {
       pob: { name: ord.pob || 'New Delhi, India', state: '', country: 'India' },
       pobText: ord.pob || 'New Delhi, India',
       whatsappNumber: ord.whatsapp || '',
-      orderId: ord.id || '',
+      orderId: targetOrderId,
       orderName: rawOrderId,
       orderDate,
-      productName
+      productName: effectiveTitle
     };
 
-    // Always generate freshly for the requested language
     const reportToView = generateReport(
-      ord.report_id || 'karz-mukti-remedy',
+      effectiveReportId,
       birthData,
       lang
     );
-    reportToView.orderId = ord.id;
+    reportToView.orderId = targetOrderId;
     reportToView.orderName = rawOrderId;
     reportToView.orderDate = orderDate;
-    reportToView.productName = productName;
+    reportToView.productName = effectiveTitle;
     reportToView.language = lang;
     if (!reportToView.user) reportToView.user = {};
     reportToView.user.language = lang;
-    reportToView.user.orderId = ord.id;
+    reportToView.user.orderId = targetOrderId;
     reportToView.user.orderName = rawOrderId;
     reportToView.user.orderDate = orderDate;
-    reportToView.user.productName = productName;
+    reportToView.user.productName = effectiveTitle;
 
     onViewReport(reportToView, lang);
   };
@@ -559,7 +568,11 @@ CREATE POLICY "Allow public delete" ON public.reports FOR DELETE USING (true);`;
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredOrders.map((ord) => (
+                  {filteredOrders.map((ord) => {
+                    const isCombo = Number(ord.amount) >= 400;
+                    const isDhanOnly = ord.report_id === 'dhan-yog-report' || ord.id.endsWith('_dhan_yog');
+
+                    return (
                     <tr key={ord.id} className="hover:bg-amber-50/40 transition-colors">
                       
                       {/* Client Details */}
@@ -585,7 +598,17 @@ CREATE POLICY "Allow public delete" ON public.reports FOR DELETE USING (true);`;
                       {/* Service & Amount */}
                       <td className="py-3.5 px-4">
                         <span className="font-bold text-[#89270b] block">{ord.report_title}</span>
-                        <div className="flex items-center space-x-1.5 mt-0.5">
+                        {isCombo && (
+                          <div className="inline-flex items-center space-x-1 text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded mt-0.5">
+                            <span>✨ २-इन-१ कॉम्बो (कर्ज मुक्ति + धन योग)</span>
+                          </div>
+                        )}
+                        {isDhanOnly && (
+                          <div className="inline-flex items-center space-x-1 text-[10px] font-bold text-emerald-900 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded mt-0.5">
+                            <span>💰 धन योग एवं महालक्ष्मी रिपोर्ट</span>
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-1.5 mt-1">
                           <span className="text-xs font-black text-gray-900">₹{ord.amount || 299}</span>
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                             (ord.lead_stage === 'completed' || (!ord.lead_stage && (ord.payment_status || '').includes('Completed')))
@@ -632,42 +655,87 @@ CREATE POLICY "Allow public delete" ON public.reports FOR DELETE USING (true);`;
 
                       {/* Generated Report View & WhatsApp Delivery Actions */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
-                          {/* Hindi Download/View */}
-                          <button
-                            onClick={() => handleViewReport(ord, 'hi')}
-                            className="inline-flex items-center space-x-1 bg-[#89270b] hover:bg-[#701e06] text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
-                            title="Open & Download 6-Page Vedic Report in Hindi"
-                          >
-                            <Download className="w-3.5 h-3.5 text-yellow-300" />
-                            <span>🇮🇳 हिंदी PDF</span>
-                          </button>
+                        <div className="flex flex-col items-center justify-center gap-1.5">
+                          {isCombo ? (
+                            <div className="space-y-1.5 w-full">
+                              {/* 1. Karz Mukti */}
+                              <div className="flex items-center justify-center space-x-1">
+                                <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-1 py-0.5 rounded shrink-0">१. कर्ज:</span>
+                                <button
+                                  onClick={() => handleViewReport(ord, 'hi', 'karz-mukti-remedy')}
+                                  className="inline-flex items-center space-x-0.5 bg-[#89270b] hover:bg-[#701e06] text-white px-2 py-1 rounded-lg font-bold text-[11px] shadow-xs cursor-pointer active:scale-95"
+                                  title="Open Karz Mukti in Hindi"
+                                >
+                                  <Download className="w-3 h-3 text-yellow-300" />
+                                  <span>हिंदी PDF</span>
+                                </button>
+                                <button
+                                  onClick={() => handleViewReport(ord, 'en', 'karz-mukti-remedy')}
+                                  className="inline-flex items-center space-x-0.5 bg-amber-800 hover:bg-amber-900 text-white px-2 py-1 rounded-lg font-bold text-[11px] shadow-xs cursor-pointer active:scale-95"
+                                  title="Open Karz Mukti in English"
+                                >
+                                  <Download className="w-3 h-3 text-amber-200" />
+                                  <span>Eng</span>
+                                </button>
+                              </div>
 
-                          {/* English Download/View */}
-                          <button
-                            onClick={() => handleViewReport(ord, 'en')}
-                            className="inline-flex items-center space-x-1 bg-amber-800 hover:bg-amber-900 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
-                            title="Open & Download 6-Page Vedic Report in English"
-                          >
-                            <Download className="w-3.5 h-3.5 text-amber-200" />
-                            <span>🇬🇧 English PDF</span>
-                          </button>
+                              {/* 2. Dhan Yog */}
+                              <div className="flex items-center justify-center space-x-1">
+                                <span className="text-[10px] font-bold text-emerald-900 bg-emerald-100 px-1 py-0.5 rounded shrink-0">२. धन:</span>
+                                <button
+                                  onClick={() => handleViewReport(ord, 'hi', 'dhan-yog-report')}
+                                  className="inline-flex items-center space-x-0.5 bg-emerald-700 hover:bg-emerald-800 text-white px-2 py-1 rounded-lg font-bold text-[11px] shadow-xs cursor-pointer active:scale-95"
+                                  title="Open Dhan Yog in Hindi"
+                                >
+                                  <Download className="w-3 h-3 text-yellow-200" />
+                                  <span>हिंदी PDF</span>
+                                </button>
+                                <button
+                                  onClick={() => handleViewReport(ord, 'en', 'dhan-yog-report')}
+                                  className="inline-flex items-center space-x-0.5 bg-teal-800 hover:bg-teal-900 text-white px-2 py-1 rounded-lg font-bold text-[11px] shadow-xs cursor-pointer active:scale-95"
+                                  title="Open Dhan Yog in English"
+                                >
+                                  <Download className="w-3 h-3 text-teal-200" />
+                                  <span>Eng</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
+                              {/* Standard Hindi Download/View */}
+                              <button
+                                onClick={() => handleViewReport(ord, 'hi')}
+                                className="inline-flex items-center space-x-1 bg-[#89270b] hover:bg-[#701e06] text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
+                                title="Open & Download 6-Page Vedic Report in Hindi"
+                              >
+                                <Download className="w-3.5 h-3.5 text-yellow-300" />
+                                <span>🇮🇳 हिंदी PDF</span>
+                              </button>
+
+                              {/* Standard English Download/View */}
+                              <button
+                                onClick={() => handleViewReport(ord, 'en')}
+                                className="inline-flex items-center space-x-1 bg-amber-800 hover:bg-amber-900 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
+                                title="Open & Download 6-Page Vedic Report in English"
+                              >
+                                <Download className="w-3.5 h-3.5 text-amber-200" />
+                                <span>🇬🇧 English PDF</span>
+                              </button>
+                            </div>
+                          )}
 
                           {/* WhatsApp */}
                           {ord.whatsapp && ord.whatsapp !== 'Not Provided' && (
                             <button
                               onClick={() => handleSendWhatsAppReport(ord)}
-                              className="inline-flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
-                              title="Open WhatsApp with pre-filled report delivery message"
+                              className="inline-flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 mt-0.5"
+                              title="Send Report(s) on WhatsApp"
                             >
-                              <MessageCircle className="w-3.5 h-3.5 text-emerald-200" />
+                              <MessageCircle className="w-3.5 h-3.5" />
                               <span>WhatsApp</span>
                             </button>
                           )}
                         </div>
-                        <span className="text-[10px] text-emerald-700 font-semibold block mt-1">
-                          ✓ Report Ready in Admin
-                        </span>
                       </td>
 
                       {/* Delete */}
@@ -682,7 +750,8 @@ CREATE POLICY "Allow public delete" ON public.reports FOR DELETE USING (true);`;
                       </td>
 
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}
