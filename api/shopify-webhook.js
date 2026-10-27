@@ -324,14 +324,14 @@ export default async function handler(req, res) {
 
     // Match Karz Mukti Line Item
     const karzMuktiItem = order.line_items.find(function(item) {
-      const t = (item.title || '').toLowerCase();
-      return t.includes('karz mukti') || t.includes('karzmukti') || t.includes('karz-mukti') || t.includes('ऋण मुक्ति');
+      const t = `${item.title || ''} ${item.variant_title || ''} ${item.name || ''}`.toLowerCase();
+      return t.includes('karz') || t.includes('ऋण') || t.includes('mukti');
     });
 
     // Match Dhan Yog Upsell Line Item
     const dhanYogItem = order.line_items.find(function(item) {
-      const t = (item.title || '').toLowerCase();
-      return t.includes('dhan yog') || t.includes('dhanyog') || t.includes('dhan-yog') || t.includes('dhan prapti') || t.includes('धन योग') || t.includes('dhan report');
+      const t = `${item.title || ''} ${item.variant_title || ''} ${item.name || ''}`.toLowerCase();
+      return t.includes('dhan') || t.includes('धन') || t.includes('wealth') || t.includes('lakshmi');
     });
 
     if (!karzMuktiItem && !dhanYogItem) {
