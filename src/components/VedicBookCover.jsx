@@ -48,7 +48,7 @@ const DEITY_CONFIGS = {
     symbol: 'kalash-lotus',
     tagline: 'WEALTH & REAL ESTATE GAINS',
     taglineHi: 'महालक्ष्मी धन योग',
-    imageFile: null
+    imageFile: '/covers/dhan-yog-report.jpg'
   },
   'business-growth-report': {
     deity: 'Vyapar Lakshmi & Ganesha',

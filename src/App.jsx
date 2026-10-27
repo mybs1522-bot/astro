@@ -289,15 +289,19 @@ export default function App() {
   const [isOpeningPayment, setIsOpeningPayment] = useState(false);
   const [currentLeadId, setCurrentLeadId] = useState(null);
 
-  const handleLandingFormSubmit = async (hasAddon) => {
-    setWithAddon(hasAddon);
-    const amount = hasAddon ? 398 : 299;
+  const handleLandingFormSubmit = async (addonOption) => {
+    const isDhanYog = typeof addonOption === 'object' ? Boolean(addonOption.includeDhanYog) : Boolean(addonOption);
+    setWithAddon(isDhanYog);
+    const amount = isDhanYog ? 499 : 299;
     setIsOpeningPayment(true);
 
     const reportItem = REPORTS_DATA.find(r => r.id === selectedReportId);
-    const reportTitle = language === 'hi'
+    let reportTitle = language === 'hi'
       ? (reportItem?.titleHi || reportItem?.title || 'वैदिक ज्योतिष रिपोर्ट')
       : (reportItem?.title || 'Vedic Astrology Report');
+    if (isDhanYog) {
+      reportTitle += (language === 'hi' ? ' + धन योग एवं महालक्ष्मी कृपा रिपोर्ट' : ' + Personalized Dhan Yog Report & Remedy');
+    }
 
     // ── STAGE 1: Capture lead IMMEDIATELY (before Razorpay even loads) ──
     const leadId = await saveLeadCapture({
@@ -411,6 +415,9 @@ export default function App() {
   };
 
   const handlePaymentSuccess = (leadId, paymentInfo = {}) => {
+    const isDhanYog = Boolean(withAddon);
+    const totalAmount = isDhanYog ? 499 : 299;
+
     // 1. Generate the verified report instantaneously in background for Admin
     const initialReport = generateReport(selectedReportId, formData, language);
     setActiveReportData(initialReport);
@@ -427,7 +434,8 @@ export default function App() {
       clientName: formData.fullName || 'Anonymous Client',
       whatsapp: formData.whatsappNumber || '',
       reportTitle: initialReport?.title || 'Astrology Report',
-      amount: withAddon ? 398 : 299
+      amount: totalAmount,
+      hasDhanYog: isDhanYog
     });
     setIsGurujiSuccessModalOpen(true);
 
@@ -438,7 +446,7 @@ export default function App() {
         orderId: orderId,
         reportId: selectedReportId,
         title: initialReport?.title || 'Astrology Report',
-        amount: withAddon ? 398 : 299,
+        amount: totalAmount,
         paymentId: payId,
         name: formData.fullName,
         phone: formData.whatsappNumber,
@@ -449,7 +457,7 @@ export default function App() {
       console.warn('[Meta Tracking Purchase Error]:', metaErr);
     }
 
-    // 2. Persist full order record (upserts the existing lead with report data)
+    // 2. Persist full order record
     const orderRecord = {
       id: orderId,
       client_name: formData.fullName || 'Anonymous Client',
@@ -460,7 +468,7 @@ export default function App() {
       whatsapp: formData.whatsappNumber || 'Not Provided',
       report_id: selectedReportId,
       report_title: initialReport?.title || 'Astrology Report',
-      amount: withAddon ? 398 : 299,
+      amount: 299,
       payment_status: 'Completed',
       payment_method: payMethod,
       payment_id: payId,
@@ -468,6 +476,29 @@ export default function App() {
       report_data: initialReport
     };
     saveReportOrder(orderRecord);
+
+    // 3. If Dhan Yog Upsell was added, generate & persist the second report!
+    if (isDhanYog) {
+      const dhanReport = generateReport('dhan-yog-report', formData, language);
+      const dhanRecord = {
+        id: `${orderId}_dhan_yog`,
+        client_name: formData.fullName || 'Anonymous Client',
+        gender: formData.gender || 'Male',
+        dob: `${formData.dob.day}/${formData.dob.month}/${formData.dob.year}`,
+        tob: formData.timeUnknown ? 'अज्ञात (चन्द्र लग्न अनुसार)' : `${formData.tob.hour}:${formData.tob.minute} ${formData.tob.ampm}`,
+        pob: formData.pobText || (typeof formData.pob === 'string' ? formData.pob : formData.pob?.name) || 'New Delhi, India',
+        whatsapp: formData.whatsappNumber || 'Not Provided',
+        report_id: 'dhan-yog-report',
+        report_title: language === 'hi' ? 'धन योग एवं महालक्ष्मी कृपा रिपोर्ट' : 'Personalized Dhan Yog Report & Remedy',
+        amount: 200,
+        payment_status: 'Completed',
+        payment_method: payMethod,
+        payment_id: payId,
+        lead_stage: 'completed',
+        report_data: dhanReport
+      };
+      saveReportOrder(dhanRecord);
+    }
 
     // 3. Seamlessly enrich with Gemini AI in the background
     enhanceExistingReportWithAi(initialReport).then((enhanced) => {

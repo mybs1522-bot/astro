@@ -41,7 +41,7 @@ export default function GurujiOrderSuccessModal({
 
           <div className="inline-flex items-center space-x-1.5 bg-emerald-500/90 text-white px-3 py-1 rounded-full text-xs font-bold mb-2 shadow-md">
             <CheckCircle2 className="w-3.5 h-3.5 text-yellow-200" />
-            <span>{isHindi ? 'भुगतान सफल • ₹299 प्राप्त' : 'Payment Successful • ₹299 Confirmed'}</span>
+            <span>{isHindi ? `भुगतान सफल • ₹${amount} प्राप्त` : `Payment Successful • ₹${amount} Confirmed`}</span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black font-serif text-yellow-300">

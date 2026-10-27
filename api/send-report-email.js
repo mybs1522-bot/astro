@@ -25,14 +25,28 @@ function formatTobForEmail(tob) {
   return tob;
 }
 
-function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName }) {
+function buildReportEmailHtml({ fullName, dob, tob, pob, reports = [], orderName }) {
   const displayTob = formatTobForEmail(tob);
+  const isCombo = reports.length > 1;
+  const isDhanOnly = reports.length === 1 && reports[0].reportId === 'dhan-yog-report';
+
+  let emailTitle = 'आपकी वैदिक कर्ज मुक्ति रिपोर्ट तैयार है';
+  let introP = `आपके द्वारा अनुरोधित <strong>व्यक्तिगत कर्ज मुक्ति एवं ऋण मोचन महा-रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई है।`;
+
+  if (isCombo) {
+    emailTitle = 'आपकी कर्ज मुक्ति एवं धन योग महा-रिपोर्ट्स तैयार हैं';
+    introP = `आपके द्वारा अनुरोधित <strong>व्यक्तिगत कर्ज मुक्ति महा-रिपोर्ट</strong> एवं <strong>धन योग एवं महालक्ष्मी कृपा रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई हैं।`;
+  } else if (isDhanOnly) {
+    emailTitle = 'आपकी वैदिक धन योग एवं महालक्ष्मी कृपा रिपोर्ट तैयार है';
+    introP = `आपके द्वारा अनुरोधित <strong>व्यक्तिगत धन योग एवं महालक्ष्मी कृपा महा-रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई है।`;
+  }
+
   return `
 <!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <title>आपकी वैदिक कर्ज मुक्ति रिपोर्ट तैयार है</title>
+  <title>${emailTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #fcf9f2; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2d261e;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fcf9f2; padding: 24px 12px;">
@@ -50,7 +64,7 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
             <td style="padding: 32px 28px;">
               <h2 style="color: #78350f; font-size: 20px; margin-top: 0;">प्रणाम ${fullName || 'जातक'} जी 🙏</h2>
               <p style="font-size: 15px; line-height: 1.6; color: #451a03;">
-                आपके द्वारा अनुरोधित <strong>व्यक्तिगत कर्ज मुक्ति एवं ऋण मोचन महा-रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई है।
+                ${introP}
               </p>
               <div style="background-color: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; padding: 18px 20px; margin: 24px 0;">
                 <div style="font-size: 13px; font-weight: bold; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
@@ -75,7 +89,25 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
                   </tr>
                 </table>
               </div>
-              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपकी 6-पेज की रिपोर्ट में क्या शामिल है:</h3>
+
+              ${isCombo ? `
+              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपके ऑर्डर में शामिल २ वैदिक महा-रिपोर्ट्स:</h3>
+              <div style="background-color: #fefce8; border-left: 4px solid #ca8a04; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 14px; color: #713f12; line-height: 1.6;">
+                <div><strong>१. कर्ज मुक्ति महा-रिपोर्ट:</strong> ६ठा व ८वां भाव परीक्षण, ऋण मोचन मंगल स्तोत्र व 24 माह वित्तीय मुक्ति समय-सीमा।</div>
+                <div style="margin-top: 6px;"><strong>२. धन योग एवं महालक्ष्मी कृपा रिपोर्ट:</strong> २रा व ११वां भाव परीक्षण, महालक्ष्मी कुबेर योग, श्री सूक्त साधना व स्थायी धन संचय उपाय।</div>
+              </div>
+              ` : isDhanOnly ? `
+              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपकी 6-पेज की धन योग रिपोर्ट में क्या शामिल है:</h3>
+              <ul style="font-size: 14px; line-height: 1.8; color: #4b5563; padding-left: 20px; margin-top: 0;">
+                <li><strong>पेज 1:</strong> वैदिक जन्म पत्रिका, पंचांग आधार एवं ग्रह स्पष्ट सारणी</li>
+                <li><strong>पेज 2:</strong> द्वितीय (धन) व एकादश (लाभ) भाव का गहन विश्लेषण एवं महालक्ष्मी योग</li>
+                <li><strong>पेज 3:</strong> वर्तमान महादशा, गोचर एवं आकस्मिक धन आगमन चक्र</li>
+                <li><strong>पेज 4:</strong> श्री सूक्त, कनकधारा एवं कुबेर धन आकर्षण अचूक वैदिक उपाय</li>
+                <li><strong>पेज 5:</strong> लाल किताब के सिद्ध दान, चांदी यंत्र एवं तिजोरी वास्तु नियम</li>
+                <li><strong>पेज 6:</strong> आगामी 24 माह की धन संचय एवं स्थायी समृद्धि समय-सीमा (Timeline)</li>
+              </ul>
+              ` : `
+              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपकी 6-पेज की कर्ज मुक्ति रिपोर्ट में क्या शामिल है:</h3>
               <ul style="font-size: 14px; line-height: 1.8; color: #4b5563; padding-left: 20px; margin-top: 0;">
                 <li><strong>पेज 1:</strong> वैदिक जन्म पत्रिका, पंचांग आधार एवं ग्रह स्पष्ट सारणी</li>
                 <li><strong>पेज 2:</strong> कर्ज कारक भाव (६ठा, ८वां, १२वां भाव) एवं मंगल-राहु योग विश्लेषण</li>
@@ -84,13 +116,33 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
                 <li><strong>पेज 5:</strong> लाल किताब के सिद्ध दान, यंत्र एवं सावधानियां</li>
                 <li><strong>पेज 6:</strong> आगामी 24 माह की वित्तीय मुक्ति समय-सीमा (Timeline)</li>
               </ul>
-              <div style="text-align: center; margin: 36px 0 24px 0;">
-                <a href="${reportUrl}" target="_blank" style="background: linear-gradient(135deg, #b45309, #d97706); color: #ffffff; padding: 16px 36px; border-radius: 50px; text-decoration: none; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 4px 15px rgba(180, 83, 9, 0.3);">
-                  📥 अपनी वैदिक रिपोर्ट देखें एवं PDF डाउनलोड करें
-                </a>
+              `}
+
+              <div style="text-align: center; margin: 32px 0 20px 0;">
+                ${reports.map((rep) => {
+                  const isDhan = rep.reportId === 'dhan-yog-report';
+                  const btnGrad = isDhan
+                    ? 'linear-gradient(135deg, #065f46, #047857, #10b981)'
+                    : 'linear-gradient(135deg, #b45309, #d97706, #f59e0b)';
+                  const icon = isDhan ? '💰' : '📥';
+                  const label = isCombo
+                    ? (isDhan ? '२. धन योग एवं महालक्ष्मी रिपोर्ट देखें (PDF)' : '१. कर्ज मुक्ति महा-रिपोर्ट देखें (PDF)')
+                    : (isDhan ? 'अपनी धन योग रिपोर्ट देखें एवं PDF डाउनलोड करें' : 'अपनी वैदिक रिपोर्ट देखें एवं PDF डाउनलोड करें');
+                  return `
+                  <div style="margin: 12px 0;">
+                    <a href="${rep.url}" target="_blank" style="background: ${btnGrad}; color: #ffffff; padding: 15px 32px; border-radius: 50px; text-decoration: none; font-size: 15px; font-weight: 700; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 260px;">
+                      ${icon} ${label}
+                    </a>
+                  </div>
+                  `;
+                }).join('')}
+                <div style="font-size: 12px; color: #9ca3af; margin-top: 12px;">
+                  (लिंक पर क्लिक करके आप अपनी 6-पेज की रंगीन PDF रिपोर्ट कभी भी देख व डाउनलोड कर सकते हैं)
+                </div>
               </div>
-              <div style="border-top: 1px dashed #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #6b7280; line-height: 1.6;">
-                <p style="margin: 0;">ईश्वर से आपके शीघ्र ऋण निवारण, सुख, समृद्धि एवं उत्तम स्वास्थ्य की मंगल कामना करते हैं।</p>
+
+              <div style="border-top: 1px dashed #e5e7eb; padding-top: 20px; margin-top: 28px; font-size: 13px; color: #6b7280; line-height: 1.6;">
+                <p style="margin: 0;">ईश्वर से आपके शीघ्र ऋण निवारण, प्रचुर धन-धान्य, सुख एवं समृद्धि की मंगल कामना करते हैं।</p>
                 <p style="margin: 4px 0 0 0; font-weight: 700; color: #78350f;">॥ सर्वे भवन्तु सुखिनः सर्वे सन्तु निरामयाः ॥</p>
               </div>
             </td>
@@ -145,20 +197,70 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Order not found in database' });
     }
 
-    const reportUrl = `${APP_BASE_URL}/#/report/${record.id}`;
+    // Check if companion report exists (e.g. shopify_xxx_dhan_yog)
+    const companionId = record.id.endsWith('_dhan_yog')
+      ? record.id.replace('_dhan_yog', '')
+      : `${record.id}_dhan_yog`;
+
+    const { data: companionRecord } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('id', companionId)
+      .maybeSingle();
+
+    const reportsList = [];
+    if (record.report_id === 'karz-mukti-remedy' || !record.id.endsWith('_dhan_yog')) {
+      reportsList.push({
+        id: record.id,
+        reportId: record.report_id,
+        title: record.report_title,
+        url: `${APP_BASE_URL}/#/report/${record.id}`
+      });
+      if (companionRecord) {
+        reportsList.push({
+          id: companionRecord.id,
+          reportId: companionRecord.report_id,
+          title: companionRecord.report_title,
+          url: `${APP_BASE_URL}/#/report/${companionRecord.id}`
+        });
+      }
+    } else {
+      if (companionRecord) {
+        reportsList.push({
+          id: companionRecord.id,
+          reportId: companionRecord.report_id,
+          title: companionRecord.report_title,
+          url: `${APP_BASE_URL}/#/report/${companionRecord.id}`
+        });
+      }
+      reportsList.push({
+        id: record.id,
+        reportId: record.report_id,
+        title: record.report_title,
+        url: `${APP_BASE_URL}/#/report/${record.id}`
+      });
+    }
+
     const emailHtml = buildReportEmailHtml({
       fullName: record.client_name,
       dob: record.dob,
       tob: record.tob,
       pob: record.pob,
-      reportUrl,
+      reports: reportsList,
       orderName: record.id
     });
+
+    let emailSubject = `✨ प्रणाम ${record.client_name} जी - आपकी व्यक्तिगत कर्ज मुक्ति एवं वैदिक कुंडली महा-रिपोर्ट तैयार है | Astro Jeevan`;
+    if (reportsList.length > 1) {
+      emailSubject = `✨ प्रणाम ${record.client_name} जी - आपकी कर्ज मुक्ति एवं धन योग महा-रिपोर्ट्स तैयार हैं | Astro Jeevan`;
+    } else if (record.report_id === 'dhan-yog-report') {
+      emailSubject = `💰 प्रणाम ${record.client_name} जी - आपकी व्यक्तिगत धन योग एवं महालक्ष्मी कृपा रिपोर्ट तैयार है | Astro Jeevan`;
+    }
 
     const emailPayload = {
       from: SENDER_EMAIL,
       to: email,
-      subject: `✨ प्रणाम ${record.client_name} जी - आपकी व्यक्तिगत कर्ज मुक्ति एवं वैदिक कुंडली महा-रिपोर्ट तैयार है | Astro Jeevan`,
+      subject: emailSubject,
       html: emailHtml
     };
 

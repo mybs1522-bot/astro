@@ -132,7 +132,7 @@ export default function AstroShubhLandingPage({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activePreviewPage, setActivePreviewPage] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
-  const [includeAddon, setIncludeAddon] = useState(false);
+  const [includeDhanYog, setIncludeDhanYog] = useState(false);
   const [errors, setErrors] = useState({});
   const [recentOrderToast, setRecentOrderToast] = useState(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -291,7 +291,7 @@ export default function AstroShubhLandingPage({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit(includeAddon);
+      onSubmit({ includeDhanYog, amount: includeDhanYog ? 499 : 299 });
     }
   };
 
@@ -748,26 +748,35 @@ export default function AstroShubhLandingPage({
                   </div>
                 </div>
 
-                {/* AstroShubh Exclusive Addon Box */}
-                <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200">
-                  <div className="flex items-start space-x-2.5 cursor-pointer" onClick={() => setIncludeAddon(!includeAddon)}>
+                {/* Personalized Dhan Yog Report & Remedy Upsell Bump Box */}
+                <div 
+                  onClick={() => setIncludeDhanYog(!includeDhanYog)}
+                  className="p-3 sm:p-3.5 bg-[#FFFBEB] rounded-2xl border-2 border-dashed border-amber-400 cursor-pointer shadow-xs hover:border-amber-500 transition-all select-none"
+                >
+                  <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
-                      checked={includeAddon}
-                      onChange={(e) => setIncludeAddon(e.target.checked)}
+                      checked={includeDhanYog}
+                      onChange={(e) => setIncludeDhanYog(e.target.checked)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 mt-0.5 text-amber-600 rounded border-gray-300"
+                      className="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer shrink-0"
                     />
-                    <div className="flex-1 text-xs">
-                      <div className="font-bold text-gray-900 flex items-center justify-between">
-                        <span>{isHindi ? 'शुभ रत्न एवं रुद्राक्ष धारण परामर्श' : 'Auspicious Gemstone & Rudraksha Guide'}</span>
-                        <span className="text-emerald-700 font-bold">+₹99</span>
+                    <img
+                      src="/covers/dhan-yog-thumb.png"
+                      alt="Personalized Dhan Yog Report"
+                      className="w-12 h-14 sm:w-14 sm:h-16 object-cover rounded-lg shadow-sm border border-amber-200/80 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-extrabold text-sm sm:text-base text-gray-950 tracking-tight leading-snug">
+                        Personalized Dhan Yog Report & Remedy
                       </div>
-                      <p className="text-gray-500 text-[11px] mt-0.5">
-                        {isHindi 
-                          ? 'आपकी कुंडली अनुसार अनुकूल रत्न, धारण करने की सही उंगली, दिन, समय व सिद्ध मंत्र विधि।'
-                          : 'Consecrated energization rituals and finger-placement guide based on your Lagna.'}
-                      </p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-[#047857] font-black text-base sm:text-lg">+ ₹ 200</span>
+                        <span className="text-gray-400 line-through text-sm font-medium">₹ 299</span>
+                        <span className="bg-[#FEE2E2] text-[#DC2626] text-[11px] font-bold px-2 py-0.5 rounded-md border border-rose-200">
+                          Save ₹ 99
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -843,7 +852,7 @@ export default function AstroShubhLandingPage({
                   ) : (
                     <>
                       <Lock className="w-4 h-4 text-amber-200" />
-                      <span>{isHindi ? 'Get Your Report (अपनी रिपोर्ट प्राप्त करें)' : 'Get Your Report'}</span>
+                      <span>{includeDhanYog ? (isHindi ? 'दोनों रिपोर्ट्स प्राप्त करें (₹499)' : 'Get Both Reports (₹499)') : (isHindi ? 'Get Your Report (अपनी रिपोर्ट प्राप्त करें - ₹299)' : 'Get Your Report (₹299)')}</span>
                       <ArrowRight className="w-4 h-4 text-amber-200" />
                     </>
                   )}

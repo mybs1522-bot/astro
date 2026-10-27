@@ -318,6 +318,172 @@ Your planetary configuration reveals that past financial constraints were trigge
         ]
       };
     }
+    } else if (reportId.includes('dhan') || reportId.includes('wealth') || reportId.includes('lakshmi')) {
+    // Dhan Yog Report (Wealth, Lakshmi & Kuber Alignment)
+    if (isHindi) {
+      diagnosisText = `आपकी जन्म कुंडली में लग्न ${lagna.rashi.hindi} है, जिसके स्वामी ग्रह ${lagna.rashi.lordHi} हैं और आपकी चन्द्र राशि ${moonRashi.hindi} है। वैदिक पराशरी ज्योतिष में स्थायी धन संपदा, बचत, बैंक बैलेंस, अचल संपत्ति और अकस्मात धन लाभ का विश्लेषण मुख्य रूप से द्वितीय भाव (धन भाव - संचित पूंजी व पैतृक धरोहर), एकादश भाव (लाभ भाव - निरंतर आय व आकस्मिक लाभ), नवम भाव (भाग्य भाव) और पंचम भाव (पूर्व पुण्य व लक्ष्मी भाव) से किया जाता है।
+      
+आपकी कुंडली में धन के प्राकृतिक कारक देवगुरु बृहस्पति और भौतिक सुख-समृद्धि, वाहन व ऐश्वर्य के कारक दैत्यगुरु शुक्र की स्थिति यह प्रमाणित करती है कि आपके भीतर प्रचुर धन संचय और स्थायी वैभव प्राप्त करने की असाधारण क्षमता है। पूर्व समय में धन का हाथ में न टिकना, अचानक अवांछित खर्च आना अथवा निवेश का अटक जाना केवल प्रतिकूल गोचर और धन भाव पर पाप ग्रहों के अस्थायी प्रभाव से था। वर्तमान में गतिशील **${currentDashaName}** महादशा एवं **${currentAntarName}** अंतर्दशा आपकी कुंडली में सुप्त पड़े महालक्ष्मी योग, कुबेर योग एवं गजलक्ष्मी योग को पूर्ण रूप से जाग्रत करने का अत्यंत शुभ काल है।`;
+
+      houseAnalyses = [
+        { house: '२रा भाव (संचित धन व बैंक बैलेंस)', status: 'सक्रिय एवं समृद्ध', desc: 'धन के अपव्यय और लीकेज पर पूर्ण विराम लगेगा। बैंक बचत, स्वर्ण संचय एवं फिक्स्ड डिपॉजिट में निरंतर वृद्धि होगी।' },
+        { house: '११वां भाव (आय स्रोत व अप्रत्याशित लाभ)', status: 'अत्यंत शुभ एवं प्रफुल्लित', desc: 'आय के बहुआयामी स्रोत खुलेंगे। पूर्व में किए गए श्रम अथवा निवेश से अप्रत्याशित बड़ा वित्तीय लाभ मिलने का योग।' },
+        { house: '९वां भाव (भाग्य व ईश्वरीय कृपा)', status: 'जाग्रत', desc: 'अटके हुए सौदे, पैतृक संपत्ति विवाद और रुकी हुई पदोन्नति आपके पक्ष में संपन्न होगी। भाग्य का शत-प्रतिशत साथ मिलेगा।' },
+        { house: '४था भाव (भूमि, भवन व वाहन ऐश्वर्य)', status: 'मंगलकारी', desc: 'स्वयं का मकान, भूमि का क्रय अथवा नवीन वाहन सुख प्राप्त होने का प्रबल संयोग निर्मित हो रहा है।' }
+      ];
+
+      lifeImpactAdvice = `सरल शब्दों में समझें: आपकी जन्म कुंडली में दरिद्रता का कोई स्थायी योग नहीं है, बल्कि आपकी पत्रिका में महालक्ष्मी एवं कुबेर कृपा का प्रबल धन योग उपस्थित है। जो भी आर्थिक बाधाएं थीं, वे केवल ऊर्जा के अस्थायी असंतुलन के कारण थीं। जैसे ही आप दिए गए २१ दिवसीय श्री सूक्त साधना, कनकधारा महामंत्र और उत्तर दिशा के कुबेर वास्तु नियमों का पालन करेंगे, धन का आगमन सहज और निर्बाध हो जाएगा।`;
+
+      timelineQuarters = [
+        { quarter: 'माह १ - ३ (धन रुकावट मुक्ति एवं वित्तीय स्थिरता)', heading: 'अटके धन की वापसी व बचत का आरंभ', details: 'उधार दिया हुआ धन वापस आने लगेगा। अनावश्यक खर्चों पर कड़ा नियंत्रण होगा और बैंक खाते में पहली ठोस बचत जमा होगी।' },
+        { quarter: 'माह ४ - ६ (लक्ष्मी कृपा एवं आय में बड़ा उछाल)', heading: 'नए आय स्रोतों का उदय', details: 'वेतन वृद्धि, व्यापार में नया लाभदायक अनुबंध अथवा निवेश से बड़ा लाभ। लिक्विड कैश के प्रवाह में उल्लेखनीय बढ़ोतरी होगी।' },
+        { quarter: 'माह ७ - ९ (स्थायी संपत्ति एवं निवेश सफलता)', heading: 'भूमि-भवन व स्वर्ण संचय काल', details: 'अचल संपत्ति, प्लॉट, फ्लैट अथवा स्वर्ण में पूंजी निवेश का स्वर्णिम अवसर। परिवार में सुख-समृद्धि एवं ऐश्वर्य का विस्तार होगा।' },
+        { quarter: 'माह १० - १२ (महा धन योग की पूर्ण सिद्धि)', heading: 'वित्तीय स्वतंत्रता एवं स्थायित्व', details: 'आकस्मिक धन लाभ व दीर्घकालिक पैसिव इनकम के रास्ते मजबूत। कुबेर व महालक्ष्मी का स्थायी आशीर्वाद प्राप्त होगा।' }
+      ];
+
+      cosmicCoordinates = {
+        luckyDays: 'शुक्रवार एवं गुरुवार',
+        luckyColors: 'स्वर्ण पीला, रेशमी श्वेत, हल्का गुलाबी',
+        luckyGem: 'पीला पुखराज (Yellow Sapphire) अथवा प्राकृतिक ओपल / पन्ना',
+        luckyNumber: '५, ६ एवं ३',
+        luckyDirection: 'उत्तर दिशा (कुबेर स्थान) एवं ईशान कोण',
+        favorableTime: 'संध्या गोधूलि वेला अथवा प्रातः अमृत चौघड़िया'
+      };
+
+      primaryMantra = {
+        sanskrit: '॥ ॐ श्रीं ह्रीं क्लीं त्रिभुवन महालक्ष्म्यै अस्मांक दारिद्र्य नाशय प्रचुर धन देहि देहि क्लीं ह्रीं श्रीं ॐ ॥',
+        transliteration: 'Om Shreem Hreem Kleem Tribhuvana Mahalakshmyai Asmaank Daridrya Nashaya Prachura Dhanam Dehi Dehi Kleem Hreem Shreem Om',
+        meaning: 'हे तीनों लोकों की स्वामिनी भगवती महालक्ष्मी, हमारे समस्त आर्थिक अभावों व दारिद्र्य का नाश कर हमारे घर-परिवार में प्रचुर धन, ऐश्वर्य और सुख-शांति प्रदान करें।',
+        count: 'नित्य १०८ बार (१ माला)',
+        mala: 'कमलगट्टे की माला अथवा स्फटिक माला',
+        direction: 'उत्तर दिशा (कुबेर द्वार) की ओर मुख करके',
+        time: 'संध्याकाल गोधूलि वेला (दीपक प्रज्वलन समय) अथवा प्रातःकाल'
+      };
+
+      dailyRituals = [
+        { day: 'शुक्रवार', title: 'श्री सूक्त एवं कनकधारा पाठ', procedure: 'शुक्रवार की शाम को माता महालक्ष्मी के सम्मुख गाय के शुद्ध घी का दीपक प्रज्वलित करें और श्री सूक्त का एक पाठ करें। देवी को खीर अथवा मखाने का भोग लगाएं।' },
+        { day: 'बुधवार', title: 'कुबेर धन आकर्षण अर्घ्य', procedure: 'भगवान गणेश को ५ हरी इलायची और दूर्वा अर्पित करें। इससे व्यापार एवं धन आगमन में आ रही गुप्त बाधाएं तत्काल समाप्त होती हैं।' },
+        { day: 'गुरुवार', title: 'गुरु बृहस्पति धन वृद्धि तिलक', procedure: 'प्रातः स्नान उपरांत माथे और नाभि पर केसर अथवा हल्दी का तिलक लगाएं। इससे भाग्य भाव और द्वितीय भाव बलवान होता है।' }
+      ];
+
+      gemstoneAndRudraksha = {
+        stone: 'पीला पुखराज (Yellow Sapphire) अथवा प्राकृतिक ओपल / पन्ना',
+        metal: 'स्वर्ण अथवा पंचधातु',
+        finger: 'तर्जनी (Index Finger) अथवा कनिष्ठिका (Little Finger)',
+        day: 'शुक्ल पक्ष का गुरुवार अथवा शुक्रवार प्रातः',
+        rudraksha: '७ मुखी महालक्ष्मी रुद्राक्ष अथवा श्री यंत्र लॉकेट',
+        significance: '७ मुखी रुद्राक्ष साक्षात महालक्ष्मी का स्वरूप है। यह धन संचय कराता है, अनावश्यक खर्चों को रोकता है और घर में स्थायी बरकत लाता है।'
+      };
+
+      lalKitabRemedies = [
+        { title: 'तिजोरी में शुद्ध चांदी का चौकोर टुकड़ा', remedy: 'अपनी तिजोरी अथवा कैश बॉक्स में शुद्ध चांदी का एक छोटा चौकोर टुकड़ा लाल रेशमी वस्त्र में लपेटकर रखें।', logic: 'चांदी चन्द्रमा और लक्ष्मी का प्रतीक है, जो धन के निरंतर प्रवाह को स्थिर रखती है।' },
+        { title: 'गौ माता को मीठी रोटी अर्पण', remedy: 'प्रत्येक शुक्रवार को गाय को गुड़ और हल्दी लगी रोटी अपने हाथों से खिलाएं।', logic: 'शुक्र ग्रह की कृपा से भौतिक सुख-सुविधाएं, वाहन और ऐश्वर्य में तीव्र वृद्धि होती है।' },
+        { title: 'रसोईघर में रात को जूठे बर्तन न छोड़ना', remedy: 'रात्रि को सोने से पूर्व रसोईघर को स्वच्छ करें, सिंक में जूठे बर्तन रात भर कदापि न छोड़ें।', logic: 'जूठे बर्तन से मां अन्नपूर्णा और लक्ष्मी रुष्ट होती हैं, जिससे धन का अपव्यय होता है।' }
+      ];
+
+      vastuAdjustments = [
+        { direction: 'उत्तर दिशा (कुबेर द्वार)', title: 'धन का मुख्य प्रवेश द्वार', instruction: 'घर की उत्तर दिशा को सदैव स्वच्छ, हल्का और सुगंधित रखें। यहां कुबेर यंत्र या मनी प्लांट स्थापित करें। कभी भारी कबाड़ न रखें।' },
+        { direction: 'दक्षिण-पश्चिम (नैऋत्य कोण)', title: 'कुबेर तिजोरी की स्थापना', instruction: 'अलमारी या लॉकर को दक्षिण दीवार से सटाकर रखें, जिसका दरवाजा उत्तर दिशा की ओर खुले। इससे संचित धन कभी व्यर्थ नहीं बहता।' },
+        { direction: 'ईशान कोण (North-East)', title: 'श्री यंत्र व जल कलश', instruction: 'ईशान कोण में तांबे या कांसे के पात्र में स्वच्छ गंगाजल रखें अथवा स्फटिक श्री यंत्र स्थापित करें।' }
+      ];
+
+      dosAndDonts = {
+        dos: [
+          'प्रतिदिन संध्या समय घर के मुख्य द्वार पर दीपक अथवा प्रकाश अवश्य रखें।',
+          'अपनी जेब या पर्स में धन को सदैव व्यवस्थित रखें, कभी भी मुड़े-तुड़े नोट न रखें।',
+          'प्रत्येक पूर्णिमा को श्री सत्यनारायण भगवान अथवा महालक्ष्मी की आरती करें।',
+          'अपनी शुद्ध आय का कम से कम २% हिस्सा कन्याओं, गौशाला अथवा अनाथालय में दान करें।'
+        ],
+        donts: [
+          'सूर्यास्त के समय घर में झाड़ू न लगाएं और न ही किसी को धन अथवा दूध-दही उधार दें।',
+          'पर्स में पुराने उधारी के बिल, दवाइयों की पर्चियां या फटे हुए कागज न रखें।',
+          'घर में नल से पानी टपकने न दें, जल का अनियंत्रित रिसाव धन हानि का सूचक है।',
+          'घर के मुख्य द्वार के ठीक सामने जूते-चप्पल अथवा कचरादान कदापि न रखें।'
+        ]
+      };
+    } else {
+      // English version for Dhan Yog Report
+      diagnosisText = `Your horoscope is guided by ${lagna.rashi.name} Ascendant and ${moonRashi.name} Moon Sign. In classical Parashari Jyotish and Brihat Samhita, permanent wealth accumulation, liquid cash reserves, and financial independence are scrutinized through the 2nd House (Dhana Bhava - treasury & liquid assets), 11th House (Labha Bhava - recurring windfalls & expansion), 9th House (Bhagya Bhava - fortune & grace), and 5th House (Lakshmi Bhava).
+      
+A comprehensive ephemeris examination reveals powerful innate wealth configurations governed by Jupiter (cosmic karaka of wealth & wisdom) and Venus (karaka of prosperity, vehicles, and luxury). The previous phases of financial stagnation, unexpected leaks, or delayed investment returns were merely transient planetary bottlenecks. You are presently traversing the **${currentDashaName} Mahadasha** and **${currentAntarName} Antardasha**. This planetary alignment is extraordinarily poised to awaken your dormant Maha Dhan Yogas, establish permanent savings, and accelerate asset accumulation.`;
+
+      houseAnalyses = [
+        { house: '2nd House (Accumulated Wealth & Treasury)', status: 'Empowered & Expanding', desc: 'Financial leakages are completely arrested. Systematic multiplication of bank savings, gold reserves, and fixed assets begins.' },
+        { house: '11th House (Income Multipliers & Windfalls)', status: 'Highly Benefic & Radiant', desc: 'Multiple parallel income channels unlock. High returns on past initiatives and sudden lucrative opportunities materialize.' },
+        { house: '9th House (Divine Grace & Fortune)', status: 'Activated', desc: 'Pending deals, ancestral assets, and governmental sanctions turn decidedly in your favor with divine grace.' },
+        { house: '4th House (Real Estate & Fixed Assets)', status: 'Auspicious Alignment', desc: 'Exceptional configurations for purchasing landed property, upgrading family residence, or acquiring premium vehicles.' }
+      ];
+
+      lifeImpactAdvice = `In Plain, Accessible Words: Your horoscope carries authentic Maha Dhan Yogas and Lakshmi Blessings. The past financial friction was simply a temporary energetic bottleneck that has run its course. By aligning with the recommended 21-day Shree Suktam mantras and North-quadrant Kuber Vastu balances, financial abundance will flow smoothly and permanently.`;
+
+      timelineQuarters = [
+        { quarter: 'Months 1 - 3 (Blockage Relief & Savings Launch)', heading: 'Recovery of Trapped Funds', details: 'Overdue money begins returning. Strict containment of impulse expenses allows the first substantial bank savings to solidify.' },
+        { quarter: 'Months 4 - 6 (Income Acceleration & Windfalls)', heading: 'Surge in Monthly Revenue', details: 'Substantial salary increment, lucrative new business contract, or stellar investment returns. Noticeable surge in liquid cash reserves.' },
+        { quarter: 'Months 7 - 9 (Asset Consolidation)', heading: 'Real Estate & Precious Metals', details: 'Golden window for acquiring residential plot, commercial space, or sovereign gold. Domestic comfort and luxury expand.' },
+        { quarter: 'Months 10 - 12 (Sovereign Wealth Fruition)', heading: 'Total Financial Sovereignty', details: 'Passive income streams mature. Complete peace of mind and long-term economic independence firmly established.' }
+      ];
+
+      cosmicCoordinates = {
+        luckyDays: 'Friday & Thursday',
+        luckyColors: 'Golden Yellow, Silken White, Rose Pink',
+        luckyGem: 'Natural Yellow Sapphire or Fine Emerald / Opal',
+        luckyNumber: '5, 6 & 3',
+        luckyDirection: 'North (Kuber Treasury) & North-East',
+        favorableTime: 'Evening Twilight (Cow Ghee lamp hour) or Morning Amrit Hora'
+      };
+
+      primaryMantra = {
+        sanskrit: '|| Om Shreem Hreem Kleem Tribhuvana Mahalakshmyai Asmaank Daridrya Nashaya Prachura Dhanam Dehi Dehi Kleem Hreem Shreem Om ||',
+        transliteration: 'Om Shreem Hreem Kleem Tribhuvana Mahalakshmyai Asmaank Daridrya Nashaya Prachura Dhanam Dehi Dehi Kleem Hreem Shreem Om',
+        meaning: 'Salutations to the Supreme Goddess Maha Lakshmi of all three realms: dissolve all scarcity and lack from our lives, and shower us with enduring wealth, dignity, and radiant joy.',
+        count: '108 chants daily (1 Mala)',
+        mala: 'Kamalgatta (Lotus Seed) Mala or Sphatik (Quartz) Mala',
+        direction: 'Facing North (Lord Kuber’s Direction) or East',
+        time: 'Evening twilight during lighting of Cow Ghee lamp, or early morning'
+      };
+
+      dailyRituals = [
+        { day: 'Friday', title: 'Shree Suktam & Kanakdhara Recitation', procedure: 'Light a pure cow ghee lamp before Goddess Maha Lakshmi at dusk and recite the sacred Shree Suktam. Offer sweet milk pudding or lotus petals.' },
+        { day: 'Wednesday', title: 'Kuber Obstacle Clearing Offering', procedure: 'Offer 5 whole green cardamoms and sacred Durva grass to Lord Ganesha to dissolve hidden commercial bottlenecks.' },
+        { day: 'Thursday', title: 'Jupiter Wealth Expansion Tilak', procedure: 'Apply a drop of saffron or pure turmeric paste to your forehead and navel after bathing to stimulate the 2nd and 9th houses of wealth.' }
+      ];
+
+      gemstoneAndRudraksha = {
+        stone: 'Unheated Natural Yellow Sapphire or Fine Natural Emerald',
+        metal: '18k Gold or Pure Ashtadhatu',
+        finger: 'Index Finger or Little Finger',
+        day: 'Bright Waxing Thursday or Friday Morning',
+        rudraksha: '7-Mukhi Divine Mahalakshmi Rudraksha or Consecrated Sri Yantra Locket',
+        significance: 'Embodies Goddess Maha Lakshmi herself, stabilizing incoming cash flows and preventing unexpected leaks.'
+      };
+
+      lalKitabRemedies = [
+        { title: 'Solid Square Silver Plate in Safe', remedy: 'Keep a clean solid square silver plate wrapped in red silk inside your cash safe or primary wallet.', logic: 'Silver anchors Moon and Lakshmi vibrations, guaranteeing unshakeable liquidity.' },
+        { title: 'Feeding Sweet Bread to Cows', remedy: 'Feed fresh wheat bread with jaggery and turmeric to sacred cows on Friday mornings.', logic: 'Directly activates Venus for worldly luxuries, comfortable vehicles, and societal renown.' },
+        { title: 'No Unwashed Utensils Overnight', remedy: 'Ensure the kitchen sink is completely cleared of unwashed dishes before retiring at night.', logic: 'Unwashed utensils invite Rahu’s negative aspect and insult Goddess Annapurna, draining household wealth.' }
+      ];
+
+      vastuAdjustments = [
+        { direction: 'North Zone (Lord Kuber’s Treasury)', title: 'Main Wealth Entryway', instruction: 'Keep the North zone pristine, brightly lit, and lightweight. Place a Kuber Yantra or healthy green plant here. Never store junk.' },
+        { direction: 'South-West Zone (Nairutya)', title: 'Cash Safe Placement', instruction: 'Anchor your money locker along the South or South-West wall so its door swings open towards the prosperous North.' },
+        { direction: 'North-East (Ishanya)', title: 'Sri Yantra & Water Feature', instruction: 'Keep clean holy water in a copper or bronze pitcher in the North-East, or place a consecrated Sphatik Sri Yantra.' }
+      ];
+
+      dosAndDonts = {
+        dos: [
+          'Keep a soft warm light or lamp burning at your main entryway during evening twilight hours.',
+          'Always arrange paper currency notes neatly in your wallet; never keep crushed or crumpled bills.',
+          'Perform a peaceful prayer or recite Maha Lakshmi Aarti every full moon (Purnima).',
+          'Earmark at least 2% of net income for charity, orphanages, or cow shelters.'
+        ],
+        donts: [
+          'Never sweep dust out of your home at sunset, and never lend liquid money during dusk hours.',
+          'Never keep expired debt slips, medicine receipts, or torn papers inside your wallet.',
+          'Never tolerate dripping water taps; leaking water energetically symbolizes leaking wealth.',
+          'Never place footwear, dirty shoes, or trash bins directly facing the main entrance.'
+        ]
+      };
+    }
   } else if (reportId.includes('naukri') || reportId.includes('career') || reportId.includes('promotion')) {
     // Career & Naukri Promotion Report
     if (isHindi) {

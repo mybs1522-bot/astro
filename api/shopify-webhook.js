@@ -25,14 +25,28 @@ function formatTobForEmail(tob) {
   return tob;
 }
 
-function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName }) {
+export function buildReportEmailHtml({ fullName, dob, tob, pob, reports = [], orderName }) {
   const displayTob = formatTobForEmail(tob);
+  const isCombo = reports.length > 1;
+  const isDhanOnly = reports.length === 1 && reports[0].reportId === 'dhan-yog-report';
+
+  let emailTitle = 'आपकी वैदिक कर्ज मुक्ति रिपोर्ट तैयार है';
+  let introP = `आपके द्वारा अनुरोधित <strong>व्यक्तिगत कर्ज मुक्ति एवं ऋण मोचन महा-रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई है।`;
+
+  if (isCombo) {
+    emailTitle = 'आपकी कर्ज मुक्ति एवं धन योग महा-रिपोर्ट्स तैयार हैं';
+    introP = `आपके द्वारा अनुरोधित <strong>व्यक्तिगत कर्ज मुक्ति महा-रिपोर्ट</strong> एवं <strong>धन योग एवं महालक्ष्मी कृपा रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई हैं।`;
+  } else if (isDhanOnly) {
+    emailTitle = 'आपकी वैदिक धन योग एवं महालक्ष्मी कृपा रिपोर्ट तैयार है';
+    introP = `आपके द्वारा अनुरोधित <strong>व्यक्तिगत धन योग एवं महालक्ष्मी कृपा महा-रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई है।`;
+  }
+
   return `
 <!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <title>आपकी वैदिक कर्ज मुक्ति रिपोर्ट तैयार है</title>
+  <title>${emailTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #fcf9f2; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2d261e;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fcf9f2; padding: 24px 12px;">
@@ -50,7 +64,7 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
             <td style="padding: 32px 28px;">
               <h2 style="color: #78350f; font-size: 20px; margin-top: 0;">प्रणाम ${fullName || 'जातक'} जी 🙏</h2>
               <p style="font-size: 15px; line-height: 1.6; color: #451a03;">
-                आपके द्वारा अनुरोधित <strong>व्यक्तिगत कर्ज मुक्ति एवं ऋण मोचन महा-रिपोर्ट</strong> आचार्य जी द्वारा आपकी जन्म पत्रिका (कुंडली) के गहन विश्लेषण के उपरांत पूर्ण रूप से तैयार कर ली गई है।
+                ${introP}
               </p>
               <div style="background-color: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; padding: 18px 20px; margin: 24px 0;">
                 <div style="font-size: 13px; font-weight: bold; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
@@ -75,7 +89,25 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
                   </tr>
                 </table>
               </div>
-              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपकी 6-पेज की रिपोर्ट में क्या शामिल है:</h3>
+
+              ${isCombo ? `
+              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपके ऑर्डर में शामिल २ वैदिक महा-रिपोर्ट्स:</h3>
+              <div style="background-color: #fefce8; border-left: 4px solid #ca8a04; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 14px; color: #713f12; line-height: 1.6;">
+                <div><strong>१. कर्ज मुक्ति महा-रिपोर्ट:</strong> ६ठा व ८वां भाव परीक्षण, ऋण मोचन मंगल स्तोत्र व 24 माह वित्तीय मुक्ति समय-सीमा।</div>
+                <div style="margin-top: 6px;"><strong>२. धन योग एवं महालक्ष्मी कृपा रिपोर्ट:</strong> २रा व ११वां भाव परीक्षण, महालक्ष्मी कुबेर योग, श्री सूक्त साधना व स्थायी धन संचय उपाय।</div>
+              </div>
+              ` : isDhanOnly ? `
+              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपकी 6-पेज की धन योग रिपोर्ट में क्या शामिल है:</h3>
+              <ul style="font-size: 14px; line-height: 1.8; color: #4b5563; padding-left: 20px; margin-top: 0;">
+                <li><strong>पेज 1:</strong> वैदिक जन्म पत्रिका, पंचांग आधार एवं ग्रह स्पष्ट सारणी</li>
+                <li><strong>पेज 2:</strong> द्वितीय (धन) व एकादश (लाभ) भाव का गहन विश्लेषण एवं महालक्ष्मी योग</li>
+                <li><strong>पेज 3:</strong> वर्तमान महादशा, गोचर एवं आकस्मिक धन आगमन चक्र</li>
+                <li><strong>पेज 4:</strong> श्री सूक्त, कनकधारा एवं कुबेर धन आकर्षण अचूक वैदिक उपाय</li>
+                <li><strong>पेज 5:</strong> लाल किताब के सिद्ध दान, चांदी यंत्र एवं तिजोरी वास्तु नियम</li>
+                <li><strong>पेज 6:</strong> आगामी 24 माह की धन संचय एवं स्थायी समृद्धि समय-सीमा (Timeline)</li>
+              </ul>
+              ` : `
+              <h3 style="color: #92400e; font-size: 16px; margin-bottom: 12px;">आपकी 6-पेज की कर्ज मुक्ति रिपोर्ट में क्या शामिल है:</h3>
               <ul style="font-size: 14px; line-height: 1.8; color: #4b5563; padding-left: 20px; margin-top: 0;">
                 <li><strong>पेज 1:</strong> वैदिक जन्म पत्रिका, पंचांग आधार एवं ग्रह स्पष्ट सारणी</li>
                 <li><strong>पेज 2:</strong> कर्ज कारक भाव (६ठा, ८वां, १२वां भाव) एवं मंगल-राहु योग विश्लेषण</li>
@@ -84,16 +116,33 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
                 <li><strong>पेज 5:</strong> लाल किताब के सिद्ध दान, यंत्र एवं सावधानियां</li>
                 <li><strong>पेज 6:</strong> आगामी 24 माह की वित्तीय मुक्ति समय-सीमा (Timeline)</li>
               </ul>
-              <div style="text-align: center; margin: 36px 0 24px 0;">
-                <a href="${reportUrl}" target="_blank" style="background: linear-gradient(135deg, #b45309, #d97706); color: #ffffff; padding: 16px 36px; border-radius: 50px; text-decoration: none; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 4px 15px rgba(180, 83, 9, 0.3);">
-                  📥 अपनी वैदिक रिपोर्ट देखें एवं PDF डाउनलोड करें
-                </a>
-                <div style="font-size: 12px; color: #9ca3af; margin-top: 10px;">
-                  (लिंक पर क्लिक करके आप अपनी 6-पेज की रंगीन PDF रिपोर्ट कभी भी डाउनलोड कर सकते हैं)
+              `}
+
+              <div style="text-align: center; margin: 32px 0 20px 0;">
+                ${reports.map((rep) => {
+                  const isDhan = rep.reportId === 'dhan-yog-report';
+                  const btnGrad = isDhan
+                    ? 'linear-gradient(135deg, #065f46, #047857, #10b981)'
+                    : 'linear-gradient(135deg, #b45309, #d97706, #f59e0b)';
+                  const icon = isDhan ? '💰' : '📥';
+                  const label = isCombo
+                    ? (isDhan ? '२. धन योग एवं महालक्ष्मी रिपोर्ट देखें (PDF)' : '१. कर्ज मुक्ति महा-रिपोर्ट देखें (PDF)')
+                    : (isDhan ? 'अपनी धन योग रिपोर्ट देखें एवं PDF डाउनलोड करें' : 'अपनी वैदिक रिपोर्ट देखें एवं PDF डाउनलोड करें');
+                  return `
+                  <div style="margin: 12px 0;">
+                    <a href="${rep.url}" target="_blank" style="background: ${btnGrad}; color: #ffffff; padding: 15px 32px; border-radius: 50px; text-decoration: none; font-size: 15px; font-weight: 700; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 260px;">
+                      ${icon} ${label}
+                    </a>
+                  </div>
+                  `;
+                }).join('')}
+                <div style="font-size: 12px; color: #9ca3af; margin-top: 12px;">
+                  (लिंक पर क्लिक करके आप अपनी 6-पेज की रंगीन PDF रिपोर्ट कभी भी देख व डाउनलोड कर सकते हैं)
                 </div>
               </div>
-              <div style="border-top: 1px dashed #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #6b7280; line-height: 1.6;">
-                <p style="margin: 0;">ईश्वर से आपके शीघ्र ऋण निवारण, सुख, समृद्धि एवं उत्तम स्वास्थ्य की मंगल कामना करते हैं।</p>
+
+              <div style="border-top: 1px dashed #e5e7eb; padding-top: 20px; margin-top: 28px; font-size: 13px; color: #6b7280; line-height: 1.6;">
+                <p style="margin: 0;">ईश्वर से आपके शीघ्र ऋण निवारण, प्रचुर धन-धान्य, सुख एवं समृद्धि की मंगल कामना करते हैं।</p>
                 <p style="margin: 4px 0 0 0; font-weight: 700; color: #78350f;">॥ सर्वे भवन्तु सुखिनः सर्वे सन्तु निरामयाः ॥</p>
               </div>
             </td>
@@ -113,16 +162,27 @@ function buildReportEmailHtml({ fullName, dob, tob, pob, reportUrl, orderName })
   `;
 }
 
-function extractCustomerData(order, targetItem) {
-  const props = Array.isArray(targetItem?.properties) ? targetItem.properties : [];
-  const noteAttrs = Array.isArray(order.note_attributes) ? order.note_attributes : [];
+export function extractCustomerData(order, targetItem) {
+  const allProps = [];
+  if (Array.isArray(targetItem?.properties)) {
+    allProps.push(...targetItem.properties);
+  }
+  if (Array.isArray(order?.line_items)) {
+    order.line_items.forEach(item => {
+      if (item !== targetItem && Array.isArray(item.properties)) {
+        allProps.push(...item.properties);
+      }
+    });
+  }
+
+  const noteAttrs = Array.isArray(order?.note_attributes) ? order.note_attributes : [];
 
   function getVal(keys) {
     const keyList = Array.isArray(keys) ? keys : [keys];
     for (const key of keyList) {
-      const p = props.find(x => x.name && x.name.trim().toLowerCase() === key.toLowerCase());
+      const p = allProps.find(x => x && x.name && x.name.trim().toLowerCase() === key.toLowerCase());
       if (p && p.value && String(p.value).trim()) return String(p.value).trim();
-      const n = noteAttrs.find(x => x.name && x.name.trim().toLowerCase() === key.toLowerCase());
+      const n = noteAttrs.find(x => x && x.name && x.name.trim().toLowerCase() === key.toLowerCase());
       if (n && n.value && String(n.value).trim()) return String(n.value).trim();
     }
     return null;
@@ -158,7 +218,6 @@ function extractCustomerData(order, targetItem) {
     }
   }
 
-  // Comprehensive TOB extraction across properties, note attributes, and order note
   const tobKeys = [
     'time of birth', 'tob', 'birth time', 'birth_time', 'time_of_birth',
     'time', 'जन्म समय', 'समय', 'birth time (tob)', 'time of birth (tob)',
@@ -167,7 +226,7 @@ function extractCustomerData(order, targetItem) {
 
   let rawTob = null;
   for (const k of tobKeys) {
-    const p = props.find(x => x.name && x.name.trim().toLowerCase() === k);
+    const p = allProps.find(x => x && x.name && x.name.trim().toLowerCase() === k);
     if (p && p.value && String(p.value).trim()) {
       rawTob = String(p.value).trim();
       break;
@@ -176,7 +235,7 @@ function extractCustomerData(order, targetItem) {
 
   if (!rawTob) {
     for (const k of tobKeys) {
-      const n = noteAttrs.find(x => x.name && x.name.trim().toLowerCase() === k);
+      const n = noteAttrs.find(x => x && x.name && x.name.trim().toLowerCase() === k);
       if (n && n.value && String(n.value).trim()) {
         rawTob = String(n.value).trim();
         break;
@@ -184,15 +243,13 @@ function extractCustomerData(order, targetItem) {
     }
   }
 
-  // Fuzzy check for any property containing time
   if (!rawTob) {
-    const fuzzyProp = props.find(x => x.name && /time|tob|समय/i.test(x.name) && !/known|zone|order/i.test(x.name));
+    const fuzzyProp = allProps.find(x => x && x.name && /time|tob|समय/i.test(x.name) && !/known|zone|order/i.test(x.name));
     if (fuzzyProp && fuzzyProp.value && String(fuzzyProp.value).trim()) {
       rawTob = String(fuzzyProp.value).trim();
     }
   }
 
-  // Check order.note
   if (!rawTob && order.note && typeof order.note === 'string') {
     const noteMatch = order.note.match(/(?:time\s*(?:of\s*birth)?|tob|समय|birth\s*time)\s*[:=-]\s*([^\r\n,]+)/i);
     if (noteMatch && noteMatch[1]) {
@@ -200,7 +257,6 @@ function extractCustomerData(order, targetItem) {
     }
   }
 
-  // Check split hour / minute fields
   if (!rawTob) {
     const hr = getVal(['hour', 'birth hour', 'hr', 'hours']);
     const min = getVal(['minute', 'birth minute', 'min', 'minutes']) || '00';
@@ -262,43 +318,83 @@ export default async function handler(req, res) {
 
   try {
     const order = req.body;
-    if (!order || !order.id || !order.line_items) {
+    if (!order || !order.id || !Array.isArray(order.line_items)) {
       return res.status(400).json({ error: 'Invalid payload' });
     }
 
+    // Match Karz Mukti Line Item
     const karzMuktiItem = order.line_items.find(function(item) {
-      return item.title && item.title.toLowerCase().includes('karz mukti');
+      const t = (item.title || '').toLowerCase();
+      return t.includes('karz mukti') || t.includes('karzmukti') || t.includes('karz-mukti') || t.includes('ऋण मुक्ति');
     });
 
-    if (!karzMuktiItem) {
-      return res.status(200).json({ message: 'Ignored, wrong product.' });
+    // Match Dhan Yog Upsell Line Item
+    const dhanYogItem = order.line_items.find(function(item) {
+      const t = (item.title || '').toLowerCase();
+      return t.includes('dhan yog') || t.includes('dhanyog') || t.includes('dhan-yog') || t.includes('dhan prapti') || t.includes('धन योग') || t.includes('dhan report');
+    });
+
+    if (!karzMuktiItem && !dhanYogItem) {
+      return res.status(200).json({ message: 'Ignored, no matching report products found.' });
     }
 
-    const client = extractCustomerData(order, karzMuktiItem);
+    const primaryItem = karzMuktiItem || dhanYogItem;
+    const client = extractCustomerData(order, primaryItem);
     const customerEmail = order.email || order.contact_email || order.customer?.email || '';
 
-    const record = {
-      id: 'shopify_' + order.id,
-      client_name: client.fullName,
-      gender: client.gender,
-      dob: client.dob,
-      tob: client.tob,
-      pob: client.pob,
-      whatsapp: client.whatsapp,
-      report_id: 'karz-mukti-remedy',
-      report_title: 'Personalized Karz Mukti Report & Remedy',
-      amount: parseFloat(order.total_price) || 299,
-      payment_status: 'Completed',
-      payment_method: order.gateway || 'Shopify Checkout',
-      payment_id: order.checkout_id ? String(order.checkout_id) : 'shopify_' + order.id,
-      lead_stage: 'completed',
-      error_details: customerEmail ? `email:${customerEmail}` : '',
-      report_data: null,
-      created_at: order.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    const recordsToUpsert = [];
 
-    const { error } = await supabase.from('reports').upsert([record], { onConflict: 'id' });
+    // 1. If Karz Mukti was purchased
+    if (karzMuktiItem) {
+      recordsToUpsert.push({
+        id: 'shopify_' + order.id,
+        client_name: client.fullName,
+        gender: client.gender,
+        dob: client.dob,
+        tob: client.tob,
+        pob: client.pob,
+        whatsapp: client.whatsapp,
+        report_id: 'karz-mukti-remedy',
+        report_title: 'Personalized Karz Mukti Report & Remedy',
+        amount: parseFloat(karzMuktiItem.price) || 299,
+        payment_status: 'Completed',
+        payment_method: order.gateway || 'Shopify Checkout',
+        payment_id: order.checkout_id ? String(order.checkout_id) : 'shopify_' + order.id,
+        lead_stage: 'completed',
+        error_details: customerEmail ? `email:${customerEmail}` : '',
+        report_data: null,
+        created_at: order.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+
+    // 2. If Dhan Yog Upsell was purchased
+    if (dhanYogItem) {
+      const dhanRecordId = karzMuktiItem ? `shopify_${order.id}_dhan_yog` : `shopify_${order.id}`;
+      recordsToUpsert.push({
+        id: dhanRecordId,
+        client_name: client.fullName,
+        gender: client.gender,
+        dob: client.dob,
+        tob: client.tob,
+        pob: client.pob,
+        whatsapp: client.whatsapp,
+        report_id: 'dhan-yog-report',
+        report_title: 'Personalized Dhan Yog Report & Remedy',
+        amount: parseFloat(dhanYogItem.price) || 200,
+        payment_status: 'Completed',
+        payment_method: order.gateway || 'Shopify Checkout',
+        payment_id: order.checkout_id ? String(order.checkout_id) : 'shopify_' + order.id,
+        lead_stage: 'completed',
+        error_details: customerEmail ? `email:${customerEmail}` : '',
+        report_data: null,
+        created_at: order.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+
+    // Upsert all records into Supabase
+    const { error } = await supabase.from('reports').upsert(recordsToUpsert, { onConflict: 'id' });
 
     if (error) {
       console.error('Supabase error:', error.message);
@@ -312,20 +408,33 @@ export default async function handler(req, res) {
       console.warn('[Resend Warning] RESEND_API_KEY environment variable is not configured. Email scheduling skipped.');
     } else if (customerEmail && customerEmail.includes('@') && !customerEmail.includes('example.com')) {
       const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      const reportUrl = `${APP_BASE_URL}/#/report/${record.id}`;
+      const reportLinks = recordsToUpsert.map(r => ({
+        id: r.id,
+        reportId: r.report_id,
+        title: r.report_title,
+        url: `${APP_BASE_URL}/#/report/${r.id}`
+      }));
+
       const emailHtml = buildReportEmailHtml({
         fullName: client.fullName,
         dob: client.dob,
         tob: client.tob,
         pob: client.pob,
-        reportUrl,
+        reports: reportLinks,
         orderName: order.name || `BH-${order.order_number}` || String(order.id)
       });
+
+      let emailSubject = `✨ प्रणाम ${client.fullName} जी - आपकी व्यक्तिगत कर्ज मुक्ति एवं वैदिक कुंडली महा-रिपोर्ट तैयार है | Astro Jeevan`;
+      if (recordsToUpsert.length > 1) {
+        emailSubject = `✨ प्रणाम ${client.fullName} जी - आपकी कर्ज मुक्ति एवं धन योग महा-रिपोर्ट्स तैयार हैं | Astro Jeevan`;
+      } else if (recordsToUpsert[0].report_id === 'dhan-yog-report') {
+        emailSubject = `💰 प्रणाम ${client.fullName} जी - आपकी व्यक्तिगत धन योग एवं महालक्ष्मी कृपा रिपोर्ट तैयार है | Astro Jeevan`;
+      }
 
       const emailPayload = {
         from: SENDER_EMAIL,
         to: customerEmail,
-        subject: `✨ प्रणाम ${client.fullName} जी - आपकी व्यक्तिगत कर्ज मुक्ति एवं वैदिक कुंडली महा-रिपोर्ट तैयार है | Astro Jeevan`,
+        subject: emailSubject,
         html: emailHtml,
         scheduled_at: scheduledAt
       };
@@ -340,13 +449,16 @@ export default async function handler(req, res) {
           body: JSON.stringify(emailPayload)
         });
         const emailData = await emailRes.json();
-        console.log(`[Resend] Successfully scheduled 24h email for ${customerEmail}:`, emailData);
+        console.log(`[Resend] Successfully scheduled 24h email for ${customerEmail} (${recordsToUpsert.length} reports):`, emailData);
       } catch (mailErr) {
         console.error('[Resend Error]:', mailErr);
       }
     }
 
-    return res.status(200).json({ message: 'Success' });
+    return res.status(200).json({ 
+      message: 'Success', 
+      processedReports: recordsToUpsert.map(r => ({ id: r.id, report_id: r.report_id })) 
+    });
   } catch (err) {
     console.error('Webhook error:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
